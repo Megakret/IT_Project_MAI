@@ -18,10 +18,10 @@ class GeosuggestResult:
         return tuple(map(lambda x: x.get_tags(), self.__data))
 
     def get_messages(self) -> Tuple[str]:
-        return tuple(map(lambda x: str(x), self.__data))
+        return tuple(map(str, self.__data))
 
     def __str__(self) -> str:
-        return "\n\n".join(map(str, self.__data))
+        return "\n\n".join(self.get_messages())
 
     def repr(self) -> str:
         return f"GeosuggestResult({", ".join(map(repr, self.__data))})"
