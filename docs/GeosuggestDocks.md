@@ -9,7 +9,7 @@ response: geosuggest.GeosuggestResult = request(text, amount)
 
 Класс ***GeossugestResult*** по факту является картежом объектов типа ***Place*** и он позволяет обращаться к ним по индексу через оператор \[\].
 
-Также доступны методы: \__str__(), \__repr__(), get_places(), get_info(), get_tags(), get_messages()
+Также доступны методы: *\_\_str\_\_(), \_\_repr\_\_(), get_places(), get_info(), get_tags(), get_messages()*
 
 - *get_places()* - возвращает картеж названия мест
 - *get_info()* - возвращает картеж с информацией о местах (без названия)
