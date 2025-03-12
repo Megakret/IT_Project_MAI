@@ -33,9 +33,3 @@ class Geosuggest:
         return GeosuggestResult(
             requests.post(self.__form_request(text)).json()["results"]
         )
-
-
-if __name__ == "__main__":
-    g: Geosuggest = Geosuggest()
-    u = g.request(input())
-    print(u)
