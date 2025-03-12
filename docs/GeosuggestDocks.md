@@ -21,4 +21,4 @@ response: geosuggest.GeosuggestResult = request(text, amount)
 - *get_info()* - возвращает информацию о месте
 - *get_tags()* - возвращает картеж тегов
 - *\_\_str\_\_()* - возвращает собранное сообщения для бота
-- *repr()*
+- *\_\_repr()\_\_*
