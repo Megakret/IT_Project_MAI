@@ -32,5 +32,9 @@ class Geosuggest:
     @staticmethod
     def request(text: str) -> GeosuggestResult:
         return GeosuggestResult(
-            requests.post(Geosuggest.__form_request(text)).json()["results"]
+            requests.get(Geosuggest.__form_request(text)).json()["results"]
         )
+
+
+if __name__ == "__main__":
+    print(Geosuggest.request(input()))
