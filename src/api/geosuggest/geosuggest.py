@@ -34,7 +34,3 @@ class Geosuggest:
         return GeosuggestResult(
             requests.get(Geosuggest.__form_request(text)).json()["results"]
         )
-
-
-if __name__ == "__main__":
-    print(Geosuggest.request(input()))
