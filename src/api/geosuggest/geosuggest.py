@@ -1,7 +1,7 @@
 import requests
 from os import getenv
 from dotenv import load_dotenv
-from geosuggestresult import GeosuggestResult
+from api.geosuggest.geosuggestresult import GeosuggestResult
 
 
 class NonPositivePlacesAmountException(Exception):
@@ -13,7 +13,7 @@ class TooManyPlacesException(Exception):
 
 
 class Geosuggest:
-    load_dotenv()
+    # load_dotenv() uncomment when you do local testing. we already are loading dotenv in main.py
     __api_key: str = getenv("GEOSUGGEST_KEY")
 
     @staticmethod

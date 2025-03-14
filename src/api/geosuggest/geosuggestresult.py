@@ -1,7 +1,7 @@
 from typing import List
 from typing import Tuple
 from typing import Dict
-from place import Place
+from api.geosuggest.place import Place
 
 
 class GeosuggestResult:
