@@ -29,3 +29,6 @@ class GeosuggestResult:
     # return ith place as Place object
     def __getitem__(self, key: int) -> Place:
         return self.__data[key]
+
+    def __len__(self):
+        return len(self.__data)
