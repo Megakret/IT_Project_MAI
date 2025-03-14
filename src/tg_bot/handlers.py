@@ -26,8 +26,9 @@ class NewPlaceFSM(StatesGroup):
 
 
 @router.message(CommandStart())
-async def handle_cmd_start(message: Message) -> None:
+async def handle_cmd_start(message: Message, state: FSMContext) -> None:
     await message.answer("Привет. Напиши /fun")
+    await state.clear()
 
 
 @router.message(Command("geosuggest"))
@@ -39,6 +40,11 @@ async def geosuggest_test(message: Message, state: FSMContext) -> None:
 @router.message(NewPlaceFSM.enter_place)
 async def check_place(message: Message, state: FSMContext):
     responce: GeosuggestResult = Geosuggest.request(message.text)
+    if len(responce) == 0:
+        await message.answer(
+            "Упс, кажется мы не нашли такого места. Попробуйте ввести его иначе."
+        )
+        return None
     senders: list[asyncio.Task] = []
     await message.answer("Какое из следующих мест вы имели в виду?")
     await state.update_data(places=responce, name=message.text)
@@ -91,7 +97,7 @@ async def answer_form_result(message: Message, state: FSMContext):
 async def enter_score(message: Message, state: FSMContext):
     try:
         score: int = int(message.text)
-        if not (score > 0 and score <= 10):
+        if not (1 <= score <= 10):
             raise ScoreOutOfRange()
         await state.update_data(score=score)
         await answer_form_result(message, state)
