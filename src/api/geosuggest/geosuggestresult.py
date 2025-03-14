@@ -1,7 +1,7 @@
 from typing import List
 from typing import Tuple
 from typing import Dict
-from place import Place
+from api.geosuggest.place import Place
 
 
 class GeosuggestResult:
@@ -29,3 +29,6 @@ class GeosuggestResult:
     # return ith place as Place object
     def __getitem__(self, key: int) -> Place:
         return self.__data[key]
+
+    def __len__(self):
+        return len(self.__data)

@@ -1,7 +1,7 @@
 import requests
 from os import getenv
 from dotenv import load_dotenv
-from geosuggestresult import GeosuggestResult
+from api.geosuggest.geosuggestresult import GeosuggestResult
 
 
 class NonPositivePlacesAmountException(Exception):
@@ -31,6 +31,9 @@ class Geosuggest:
     # Gets text to request places and returns GeosuggestResult
     @staticmethod
     def request(text: str) -> GeosuggestResult:
-        return GeosuggestResult(
-            requests.get(Geosuggest.__form_request(text)).json()["results"]
-        )
+        try:
+            return GeosuggestResult(
+                requests.get(Geosuggest.__form_request(text)).json()["results"]
+            )
+        except KeyError:
+            return GeosuggestResult([])
