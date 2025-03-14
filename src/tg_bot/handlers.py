@@ -6,7 +6,6 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.methods.send_message import SendMessage
 from aiogram import F
 import asyncio
-from types import CoroutineType
 from api.geosuggest.geosuggest import Geosuggest, GeosuggestResult
 from api.geosuggest.place import Place
 from tg_bot.keyboards import suggest_place_kbs
@@ -81,7 +80,7 @@ async def answer_form_result(message: Message, state: FSMContext):
             f"Ваше название места: {data["name"]}",
             f"Данные о месте: {place.get_name()}\n{place.get_info()}",
             f"Ваше описание: {data["description"]}",
-            f"Ваша оценка месту: {data["score"]}"
+            f"Ваша оценка месту: {data["score"]}",
         )
     )
     await message.answer(answer)
