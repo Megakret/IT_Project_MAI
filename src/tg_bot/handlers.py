@@ -4,11 +4,12 @@ from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.methods.send_message import SendMessage
+from aiogram.types import ReplyKeyboardRemove
 from aiogram import F
 import asyncio
 from api.geosuggest.geosuggest import Geosuggest, GeosuggestResult
 from api.geosuggest.place import Place
-from tg_bot.keyboards import suggest_place_kbs
+from tg_bot.keyboards import suggest_place_kbs, starter_kb
 from tg_bot.aiogram_coros import message_sender_wrap
 
 router = Router()
@@ -27,13 +28,13 @@ class NewPlaceFSM(StatesGroup):
 
 @router.message(CommandStart())
 async def handle_cmd_start(message: Message, state: FSMContext) -> None:
-    await message.answer("Привет. Напиши /fun")
+    await message.answer("Привет. Напиши /add_place, чтобы добавить место для досуга", reply_markup=starter_kb)
     await state.clear()
 
 
-@router.message(Command("geosuggest"))
+@router.message(Command("add_place"))
 async def geosuggest_test(message: Message, state: FSMContext) -> None:
-    await message.answer("Введите место для досуга: ")
+    await message.answer("Введите место для досуга: ", reply_markup=ReplyKeyboardRemove())
     await state.set_state(NewPlaceFSM.enter_place)
 
 

@@ -1,4 +1,4 @@
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton
 
 SUGGEST_AMOUNT: int = 5
 suggest_place_kbs: list[InlineKeyboardMarkup] = []
@@ -14,3 +14,4 @@ for i in range(SUGGEST_AMOUNT):
             ]
         )
     )
+starter_kb = ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text="/add_place")]], resize_keyboard=True)
