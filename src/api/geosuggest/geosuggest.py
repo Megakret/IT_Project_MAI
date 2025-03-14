@@ -31,6 +31,9 @@ class Geosuggest:
     # Gets text to request places and returns GeosuggestResult
     @staticmethod
     def request(text: str) -> GeosuggestResult:
-        return GeosuggestResult(
-            requests.get(Geosuggest.__form_request(text)).json()["results"]
-        )
+        try:
+            return GeosuggestResult(
+                requests.get(Geosuggest.__form_request(text)).json()["results"]
+            )
+        except KeyError:
+            return GeosuggestResult([])
