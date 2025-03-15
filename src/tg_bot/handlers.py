@@ -10,7 +10,7 @@ import asyncio
 from api.geosuggest.geosuggest import Geosuggest, GeosuggestResult
 from api.geosuggest.place import Place
 from tg_bot.keyboards import suggest_place_kbs, starter_kb
-from tg_bot.aiogram_coros import message_sender_wrap
+from tg_bot.aiogram_coros import message_sender_wrap, custom_clear
 
 router = Router()
 
@@ -28,13 +28,19 @@ class NewPlaceFSM(StatesGroup):
 
 @router.message(CommandStart())
 async def handle_cmd_start(message: Message, state: FSMContext) -> None:
-    await message.answer("Привет. Напиши /add_place, чтобы добавить место для досуга", reply_markup=starter_kb)
+    await message.answer(
+        "Привет. Напиши /add_place, чтобы добавить место для досуга",
+        reply_markup=starter_kb,
+    )
     await state.clear()
 
 
 @router.message(Command("add_place"))
 async def geosuggest_test(message: Message, state: FSMContext) -> None:
-    await message.answer("Введите место для досуга: ", reply_markup=ReplyKeyboardRemove())
+    await custom_clear(state)
+    await message.answer(
+        "Введите место для досуга: ", reply_markup=ReplyKeyboardRemove()
+    )
     await state.set_state(NewPlaceFSM.enter_place)
 
 
@@ -91,7 +97,7 @@ async def answer_form_result(message: Message, state: FSMContext):
         )
     )
     await message.answer(answer)
-    await state.clear()
+    await custom_clear()
 
 
 @router.message(NewPlaceFSM.enter_score)
