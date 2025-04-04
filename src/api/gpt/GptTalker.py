@@ -1,24 +1,32 @@
-from dotenv import load_dotenv
-from os import getenv
+from GptRequest import request, _indentification_key
 import json
-import requests
-from Gpt import Gpt
+from copy import deepcopy
+from httpx import AsyncClient
+import asyncio
 
 
-class GptTalker(Gpt):
-
+class GptTalker:
+    with open("src/api/gpt/consultant_prompt.json") as file:
+        __default_prompt = json.load(file)
+        __default_prompt["modelUri"] = f"gpt://{_indentification_key}/yandexgpt-lite/latest"
+    
     def __init__(self):
-        super().__init__("src/api/gpt/starting_prompt.json")
-
-    def communicate(self, message: str) -> str:
-        self._append_message({"role": "user", "text": message})
-        response = requests.post(GptTalker.url, headers=GptTalker.headers, json=self.prompt)
-        self._append_message(response.json()["result"]["alternatives"][0]["message"])
-        return self
+        self.__prompt = deepcopy(GptTalker.__default_prompt)
+    
+    async def talk(self, client: AsyncClient,  user_message: str) -> str:
+        self.__prompt["messages"].append({"role": "user", "text": user_message})
+        response = (await request(client, self.__prompt)).json()
+        self.__prompt["messages"].append(response["result"]["alternatives"][0]["message"])
+        return response["result"]["alternatives"][0]["message"]["text"]
 
 
 if __name__ == "__main__":
-    load_dotenv()
-    gpt: GptTalker = GptTalker()
-    while (s := input()) != "\n":
-        print(gpt.communicate(s))
+    async def main():
+        from dotenv import load_dotenv
+        load_dotenv()
+        
+        gpt: GptTalker = GptTalker()
+        async with AsyncClient() as client:
+            while (s := input()) != "\n":
+                print(await gpt.talk(client, s))
+    asyncio.run(main())
