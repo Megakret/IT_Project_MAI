@@ -1,0 +1,14 @@
+{
+    "modelUri": "",
+    "completionOptions": {
+        "stream": false,
+        "temperature": 0.6,
+        "maxTokens": 2000
+    },
+    "messages": [
+        {
+            "role": "system",
+            "text": "Ты должен делать выжимку из данных тебе отзывов на места, выделяя положительные и отрицательные черты места"
+        }
+    ]
+}
