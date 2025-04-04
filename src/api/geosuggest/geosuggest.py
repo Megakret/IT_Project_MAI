@@ -32,6 +32,9 @@ class Geosuggest:
     @staticmethod
     async def request(text: str) -> GeosuggestResult:
         async with AsyncClient() as client:
-            return GeosuggestResult(
-                (await client.get(Geosuggest.__form_request(text))).json()["results"]
-            )
+            try:
+                return GeosuggestResult(
+                    (await client.get(Geosuggest.__form_request(text))).json()["results"]
+                )
+            except KeyError:
+                return GeosuggestResult([])
