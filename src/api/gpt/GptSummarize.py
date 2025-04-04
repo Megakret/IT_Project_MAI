@@ -21,3 +21,9 @@ async def summarize(client: AsyncClient, reviews: list[str]) -> str:
     prompt["messages"].append({"role": "user", "text": __construct_message(reviews)})
     response = await request(client, prompt)
     return response.json()["result"]["alternatives"][0]["message"]["text"]
+
+async def summarize_NAC(reviews: list[str]) -> str:
+    async with AsyncClient() as client:
+        return await summarize(client, reviews)
+
+

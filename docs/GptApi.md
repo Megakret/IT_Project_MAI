@@ -36,3 +36,4 @@ async def talk() -> None:
 		while (s := input()):
 			print(await talker.talk(client, s))
 ```
+

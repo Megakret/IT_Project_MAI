@@ -18,6 +18,10 @@ class GptTalker:
         response = (await request(client, self.__prompt)).json()
         self.__prompt["messages"].append(response["result"]["alternatives"][0]["message"])
         return response["result"]["alternatives"][0]["message"]["text"]
+    
+    async def talk_NAC(self, user_message: str) -> str:
+        async with AsyncClient() as client:
+            return await self.talk(client, user_message)
 
 
 if __name__ == "__main__":
@@ -26,7 +30,6 @@ if __name__ == "__main__":
         load_dotenv()
         
         gpt: GptTalker = GptTalker()
-        async with AsyncClient() as client:
-            while (s := input()) != "\n":
-                print(await gpt.talk(client, s))
+        while s := input():
+            print(await gpt.talk_NAC(s))
     asyncio.run(main())
