@@ -1,4 +1,3 @@
-
 from httpx import AsyncClient, Response
 from os import getenv
 
