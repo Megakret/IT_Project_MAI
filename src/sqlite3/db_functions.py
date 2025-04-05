@@ -1,4 +1,4 @@
-from sqlalchemy import CheckConstraint, ForeignKey, PrimaryKeyConstraint, UniqueConstraint, create_engine
+from sqlalchemy import CheckConstraint, ForeignKey, UniqueConstraint, create_engine
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column
 
@@ -18,7 +18,6 @@ class User(Base):
 class Place(Base):
     __tablename__ = "place"
 
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(nullable=False)
     address: Mapped[str] = mapped_column(unique=True, nullable=False)
     rate: Mapped[int] = mapped_column(CheckConstraint("rate BETWEEN 1 and 10"), nullable=False)
