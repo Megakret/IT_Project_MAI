@@ -3,6 +3,7 @@ import asyncio
 from os import getenv
 from aiogram import Bot, Dispatcher
 from tg_bot.handlers import router
+from tg_bot.place_list_handlers import router as place_list_router
 
 
 async def main() -> None:
@@ -10,6 +11,7 @@ async def main() -> None:
     bot = Bot(getenv("BOT_TOKEN"))
     dp = Dispatcher()
     dp.include_router(router)
+    dp.include_router(place_list_router)
     await dp.start_polling(bot)
 
 
