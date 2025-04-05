@@ -1,4 +1,4 @@
-from sqlalchemy import CheckConstraint, ForeignKey, UniqueConstraint, create_engine
+from sqlalchemy import CheckConstraint, ForeignKey, PrimaryKeyConstraint, UniqueConstraint, create_engine
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column
 
@@ -18,10 +18,11 @@ class User(Base):
 class Place(Base):
     __tablename__ = "place"
 
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(nullable=False)
     address: Mapped[str] = mapped_column(unique=True, nullable=False)
-    desc: Mapped[str] = mapped_column(nullable=True)
     rate: Mapped[int] = mapped_column(CheckConstraint("rate BETWEEN 1 and 10"), nullable=False)
+    desc: Mapped[str] = mapped_column(nullable=True)
 
     __mapper_args__ = {
         "primary_key": address
@@ -34,9 +35,9 @@ class CustomPlace(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(nullable=False)
     address: Mapped[str] = mapped_column(nullable=False)
-    desc: Mapped[str] = mapped_column(nullable=True)
     rate: Mapped[int] = mapped_column(CheckConstraint("rate BETWEEN 1 and 10"), nullable=False)
-    fk_user_id: Mapped[int] = mapped_column(ForeignKey("user.id"))
+    desc: Mapped[str] = mapped_column(nullable=True)
+    fk_user_id: Mapped[int] = mapped_column(ForeignKey("user.id"), nullable=False)
 
     UniqueConstraint(address, fk_user_id)
 
@@ -54,9 +55,69 @@ def AddUser(name: str, email: str) -> None:
             session.flush()
         except IntegrityError:
             session.rollback()
+            raise # Do smth smart instead maybe
+        except:
+            session.rollback()
+            raise # Fallback in case the're other errors
+        else:
+            session.commit()
+
+
+def AddPlace(name: str, address: str, rate: int, desc: str | None = None) -> None:
+    engine = create_engine("sqlite:///database.db")
+    with Session(engine) as session:
+        try:
+            session.add(
+                Place(
+                    name=name,
+                    address=address,
+                    rate=rate,
+                    desc=desc,
+                )
+            )
+            session.flush()
+        except IntegrityError:
+            session.rollback()
+            raise
+        except:
+            session.rollback()
             raise
         else:
             session.commit()
+
+
+def AddPlacesAll(data: tuple[dict[str, str | int | None]]) -> None:
+    engine = create_engine("sqlite:///database.db")
+    with Session(engine) as session:
+        try:
+            session.add_all([
+                Place(
+                    name=place.get('name'),
+                    address=place.get('address'),
+                    rate=place.get('rate'),
+                    desc=place.get('desc'),
+                ) for place in data])
+            session.flush()
+        except IntegrityError:
+            session.rollback()
+            raise
+        except KeyError:
+            session.rollback()
+            raise
+        except:
+            session.rollback()
+            raise
+        else:
+            session.commit()
+
+
+def GetPlaces(page: int, places_per_page: int) -> list[Place]:
+    engine = create_engine("sqlite:///database.db")
+    with Session(engine) as session:
+        query = session.query(Place).order_by(Place.name)
+    query = query.limit(places_per_page).offset((page - 1) * places_per_page)
+    result = query.all()
+    return result
 
 
 def AddCustomPlace(name: str, address: str, rate: int, desc: str | None, user_id: int) -> None:
@@ -67,8 +128,8 @@ def AddCustomPlace(name: str, address: str, rate: int, desc: str | None, user_id
                 CustomPlace(
                     name=name,
                     address=address,
-                    desc=desc,
                     rate=rate,
+                    desc=desc,
                     fk_user_id=user_id,
                 )
             )
@@ -76,11 +137,14 @@ def AddCustomPlace(name: str, address: str, rate: int, desc: str | None, user_id
         except IntegrityError:
             session.rollback()
             raise
+        except:
+            session.rollback()
+            raise
         else:
             session.commit()
 
 
-def CustomPlaces(page: int, places_per_page: int, user_id: int) -> list[CustomPlace]:
+def GetCustomPlaces(page: int, places_per_page: int, user_id: int) -> list[CustomPlace]:
     engine = create_engine("sqlite:///database.db")
     with Session(engine) as session:
         query = session.query(CustomPlace).filter(CustomPlace.fk_user_id == user_id).order_by(CustomPlace.id)
