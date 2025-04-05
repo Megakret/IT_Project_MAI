@@ -1,0 +1,56 @@
+from aiogram import Router
+from aiogram.filters import Command
+from aiogram.types import Message
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import State, StatesGroup
+from api.gpt.GptTalker import GptTalker
+from tg_bot.aiogram_coros import custom_clear
+from httpx import ReadTimeout
+
+router = Router()
+
+
+class GptTalkFSM(StatesGroup):
+    talk_state = State()
+
+
+class NoTextException(Exception):
+    pass
+
+
+@router.message(Command("talk"))
+async def start_gpt(message: Message, state: FSMContext):
+    gpt_talker: GptTalker = GptTalker()
+    await custom_clear(state)
+    await state.set_state(GptTalkFSM.talk_state)
+    await state.update_data(gpt_talker=gpt_talker)
+    await message.answer(
+        "Хорошо, давай поговорим. Чтобы прекратить диалог введите команду /exit"
+    )
+
+@router.message(GptTalkFSM.talk_state, Command("exit"))
+async def exit_gpt_mode(message: Message, state: FSMContext):
+    await custom_clear(state)
+    await message.answer("Вы вышли из режима gpt")
+
+@router.message(GptTalkFSM.talk_state)
+async def send_message_to_gpt(message: Message, state: FSMContext):
+    data = await state.get_data()
+    try:
+        gpt_talker: GptTalker = data["gpt_talker"]
+        message_text: str = message.text
+        if len(message_text) == 0:
+            raise NoTextException()
+        gpt_responce: str = await gpt_talker.talk_NAC(message_text)
+        await message.answer(gpt_responce)
+    except KeyError as e:
+        print(e)
+        await message.answer(
+            "Ошибка: отсутствие контекста гпт. Попробуйте снова начать диалог через /talk"
+        )
+    except NoTextException:
+        await message.answer("Вы должны отправить именно текст")
+    except ReadTimeout as e:
+        print(e)
+        await message.answer("Не можем подклчиться к нейросети, попробуйте позже")
+

@@ -1,7 +1,8 @@
 from httpx import AsyncClient, Response
 from os import getenv
+from dotenv import load_dotenv
 
-
+load_dotenv()
 _indentification_key: str = getenv("GPT_INDENTIFICATION")
 _api_key: str = getenv("GPT_API_KEY")
 _url: str = "https://llm.api.cloud.yandex.net/foundationModels/v1/completion"
