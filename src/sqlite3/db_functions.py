@@ -41,7 +41,7 @@ class CustomPlace(Base):
     UniqueConstraint(address, fk_user_id)
 
 
-def AddUser(name: str, email: str) -> None:
+def add_user(name: str, email: str) -> None:
     engine = create_engine("sqlite:///database.db")
     with Session(engine) as session:
         try:
@@ -62,7 +62,7 @@ def AddUser(name: str, email: str) -> None:
             session.commit()
 
 
-def AddPlace(name: str, address: str, rate: int, desc: str | None = None) -> None:
+def add_place(name: str, address: str, rate: int, desc: str | None = None) -> None:
     engine = create_engine("sqlite:///database.db")
     with Session(engine) as session:
         try:
@@ -85,7 +85,7 @@ def AddPlace(name: str, address: str, rate: int, desc: str | None = None) -> Non
             session.commit()
 
 
-def AddPlacesAll(data: tuple[dict[str, str | int | None]]) -> None:
+def add_places_all(data: tuple[dict[str, str | int | None]]) -> None:
     engine = create_engine("sqlite:///database.db")
     with Session(engine) as session:
         try:
@@ -110,7 +110,7 @@ def AddPlacesAll(data: tuple[dict[str, str | int | None]]) -> None:
             session.commit()
 
 
-def GetPlaces(page: int, places_per_page: int) -> list[Place]:
+def get_places(page: int, places_per_page: int) -> list[Place]:
     engine = create_engine("sqlite:///database.db")
     with Session(engine) as session:
         query = session.query(Place).order_by(Place.name)
@@ -119,7 +119,7 @@ def GetPlaces(page: int, places_per_page: int) -> list[Place]:
     return result
 
 
-def AddCustomPlace(name: str, address: str, rate: int, desc: str | None, user_id: int) -> None:
+def add_custom_place(name: str, address: str, rate: int, desc: str | None, user_id: int) -> None:
     engine = create_engine("sqlite:///database.db")
     with Session(engine) as session:
         try:
@@ -143,7 +143,7 @@ def AddCustomPlace(name: str, address: str, rate: int, desc: str | None, user_id
             session.commit()
 
 
-def GetCustomPlaces(page: int, places_per_page: int, user_id: int) -> list[CustomPlace]:
+def get_custom_places(page: int, places_per_page: int, user_id: int) -> list[CustomPlace]:
     engine = create_engine("sqlite:///database.db")
     with Session(engine) as session:
         query = session.query(CustomPlace).filter(CustomPlace.fk_user_id == user_id).order_by(CustomPlace.id)
