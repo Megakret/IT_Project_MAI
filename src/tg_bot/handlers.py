@@ -40,7 +40,7 @@ async def geosuggest_test(message: Message, state: FSMContext) -> None:
 
 @router.message(NewPlaceFSM.enter_place)
 async def check_place(message: Message, state: FSMContext):
-    responce: GeosuggestResult = Geosuggest.request(message.text)
+    responce: GeosuggestResult = await Geosuggest.request(message.text)
     if len(responce) == 0:
         await message.answer(
             "Упс, кажется мы не нашли такого места. Попробуйте ввести его иначе."
