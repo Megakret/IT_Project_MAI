@@ -50,7 +50,7 @@ def get_places_by_page(page: int) -> list[str]:  # 0 indexation
         ]
     lower_bound: int = PLACES_PER_PAGE * page
     upper_bound: int = lower_bound + PLACES_PER_PAGE
-    print(lower_bound, upper_bound)
+    # print(lower_bound, upper_bound)
     if lower_bound >= len(place_list) or lower_bound < 0:
         raise KeyError("This page doesn't exist")
     places_info: list[str] = []

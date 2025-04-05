@@ -97,7 +97,7 @@ async def answer_form_result(message: Message, state: FSMContext):
         )
     )
     await message.answer(answer)
-    await custom_clear()
+    await custom_clear(state)
 
 
 @router.message(NewPlaceFSM.enter_score)

@@ -29,7 +29,7 @@ async def show_page(message: Message, current_page: int) -> bool:
 
 @router.message(Command("place_list"))
 async def show_place_list(message: Message, state: FSMContext):
-    print("it works")
+    # print("it works")
     max_page: int = get_page_count()
     text: str = get_formatted_list(0)
     await custom_clear(state)
