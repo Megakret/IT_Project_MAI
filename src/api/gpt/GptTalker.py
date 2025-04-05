@@ -1,4 +1,4 @@
-from GptRequest import request, _indentification_key
+from api.gpt.GptRequest import request, _indentification_key
 import json
 from copy import deepcopy
 from httpx import AsyncClient
