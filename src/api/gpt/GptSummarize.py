@@ -5,11 +5,12 @@ from copy import deepcopy
 
 
 class GptSummarize(GptRequest):
+    with open("src/api/gpt/review_prompt.json", encoding="UTF-8") as file:
+        __default_prompt = json.load(file)
     def __init__(self):
         super().__init__()
-        with open("src/api/gpt/review_prompt.json") as file:
-            self.__prompt = json.load(file)
-            self.__prompt["modelUri"] = f"gpt://{self._indentification_key}/yandexgpt-lite/latest"
+        self.__prompt = deepcopy(GptSummarize.__default_prompt)
+        self.__prompt["modelUri"] = f"gpt://{self._indentification_key}/yandexgpt-lite/latest"
 
     def __construct_message(reviews: list[str]) -> str:
         s = "Сделай выжимку из данных отзывов о местах:\n\n"
