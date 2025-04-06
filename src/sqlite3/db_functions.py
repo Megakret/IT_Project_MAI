@@ -96,26 +96,6 @@ async def add_place(name: str, address: str, desc: str | None = None, async_sess
             await session.commit()
 
 
-"""
-def add_places_all(**kwargs: str | None, engine = engine) -> None:
-    with Session(engine) as session:
-        try:
-            (session.add_all(i) for i in args)
-            session.flush()
-        except IntegrityError:
-            session.rollback()
-            raise
-        except KeyError:
-            session.rollback()
-            raise
-        except:
-            session.rollback()
-            raise
-        else:
-            session.commit()
-"""
-
-
 async def get_places(page: int, places_per_page: int, async_session_maker = async_session_maker) -> list[Place]:
     async with async_session_maker() as session:
         statement = select(Place).order_by(Place.name).\
@@ -167,16 +147,13 @@ async def add_user_place(user_id: int, address: str, score: int | None = None, a
 
 async def get_user_places(page: int, places_per_page: int, user_id: int, async_session_maker = async_session_maker) -> list[UserPlace]:
     async with async_session_maker() as session:
-        user_instance = (
-            await session.scalars(
-                select(User).\
-                where(User.id == user_id).\
-                limit(places_per_page).\
-                offset((page - 1) * places_per_page)
-            )
-        ).one()
-        place_instance_list = [place for place in await user_instance.awaitable_attrs.user_places]
-    return place_instance_list
+        statement = select(UserPlace).\
+            where(UserPlace.fk_user_id == user_id).\
+            limit(places_per_page).\
+            offset((page - 1) * places_per_page)
+        result = await session.execute(statement)
+        instance_list = list(result.scalars().all())
+    return instance_list
 
 
 async def async_main() -> None:
