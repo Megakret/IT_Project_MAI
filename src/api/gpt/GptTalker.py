@@ -1,21 +1,23 @@
-from api.gpt.GptRequest import request, _indentification_key
+from api.gpt.GptRequest import GptRequest
 import json
 from copy import deepcopy
 from httpx import AsyncClient
 import asyncio
 
 
-class GptTalker:
-    with open("src/api/gpt/consultant_prompt.json") as file:
-        __default_prompt = json.load(file)
-        __default_prompt["modelUri"] = f"gpt://{_indentification_key}/yandexgpt-lite/latest"
+class GptTalker(GptRequest):
+
+    with open("src/api/gpt/consultant_prompt.json", encoding="UTF-8") as file:
+         __default_prompt = json.load(file)
     
     def __init__(self):
+        super().__init__()
         self.__prompt = deepcopy(GptTalker.__default_prompt)
-    
+        self.__prompt["modelUri"] = f"gpt://{self._indentification_key}/yandexgpt-lite/rc"
+   
     async def talk(self, client: AsyncClient,  user_message: str) -> str:
         self.__prompt["messages"].append({"role": "user", "text": user_message})
-        response = (await request(client, self.__prompt)).json()
+        response = (await self.request(client, self.__prompt)).json()
         self.__prompt["messages"].append(response["result"]["alternatives"][0]["message"])
         return response["result"]["alternatives"][0]["message"]["text"]
     
@@ -30,6 +32,7 @@ if __name__ == "__main__":
         load_dotenv()
         
         gpt: GptTalker = GptTalker()
-        while s := input():
-            print(await gpt.talk_NAC(s))
+        async with AsyncClient() as client:
+            while s := input():
+                print(await gpt.talk(client, s))
     asyncio.run(main())
