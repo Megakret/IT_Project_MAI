@@ -18,7 +18,6 @@ class GptTalker(GptRequest):
     async def talk(self, client: AsyncClient,  user_message: str) -> str:
         self.__prompt["messages"].append({"role": "user", "text": user_message})
         response = (await self.request(client, self.__prompt)).json()
-        print(response)
         self.__prompt["messages"].append(response["result"]["alternatives"][0]["message"])
         return response["result"]["alternatives"][0]["message"]["text"]
     
