@@ -1,8 +1,8 @@
 import asyncio
 
-from sqlalchemy import CheckConstraint, ForeignKey, UniqueConstraint, create_engine, select, update
-from sqlalchemy.ext.asyncio import AsyncAttrs
-from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, relationship
+from sqlalchemy import CheckConstraint, ForeignKey, UniqueConstraint, select, update
+from sqlalchemy.ext.asyncio import AsyncAttrs, async_sessionmaker, create_async_engine
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.exc import IntegrityError
 
 
@@ -13,10 +13,10 @@ class Base(AsyncAttrs, DeclarativeBase):
 class User(Base):
     __tablename__ = "user"
 
-    id: Mapped[int] = mapped_column(unique=True, autoincrement=False, nullable=False)
-    name: Mapped[str] = mapped_column(nullable=False)
-    email: Mapped[str] = mapped_column(unique=True, nullable=False)
-    user_places: Mapped[list["UserPlace"]] = relationship(backref="user")
+    id: Mapped[int] = mapped_column(unique=True, autoincrement=False)
+    name: Mapped[str]
+    email: Mapped[str] = mapped_column(unique=True)
+    user_places: Mapped[list["UserPlace"]] = relationship(backref="user", cascade="all, delete-orphan")
 
     __mapper_args__ = {
         "primary_key": id
@@ -26,10 +26,10 @@ class User(Base):
 class Place(Base):
     __tablename__ = "place"
 
-    name: Mapped[str] = mapped_column(nullable=False)
-    address: Mapped[str] = mapped_column(unique=True, nullable=False)
-    desc: Mapped[str] = mapped_column(nullable=True)
-    user_places: Mapped[list["UserPlace"]] = relationship(backref="place")
+    name: Mapped[str]
+    address: Mapped[str] = mapped_column(unique=True)
+    desc: Mapped[str | None]
+    user_places: Mapped[list["UserPlace"]] = relationship(backref="place", cascade="all, delete-orphan")
 
     __mapper_args__ = {
         "primary_key": address
@@ -39,9 +39,9 @@ class Place(Base):
 class UserPlace(Base):
     __tablename__ = "user_place"
 
-    fk_user_id: Mapped[int] = mapped_column(ForeignKey(User.id), nullable=False)
-    fk_place_address: Mapped[str] = mapped_column(ForeignKey(Place.address), nullable=False)
-    score: Mapped[int] = mapped_column(CheckConstraint("score BETWEEN 1 and 10"), nullable=True)
+    fk_user_id: Mapped[int] = mapped_column(ForeignKey(User.id))
+    fk_place_address: Mapped[str] = mapped_column(ForeignKey(Place.address))
+    score: Mapped[int | None] = mapped_column(CheckConstraint("score BETWEEN 1 and 10"))
 
     UniqueConstraint(fk_user_id, fk_place_address)
 
@@ -50,11 +50,12 @@ class UserPlace(Base):
     }
 
 
-engine = create_engine("sqlite:///database.db")
+engine = create_async_engine("sqlite+aiosqlite:///database.db")
+async_session_maker = async_sessionmaker(engine, expire_on_commit=False)
 
 
-def add_user(id: int, name: str, email: str, engine = engine) -> None:
-    with Session(engine) as session:
+async def add_user(id: int, name: str, email: str, async_session_maker = async_session_maker) -> None:
+    async with async_session_maker() as session:
         try:
             session.add(
                 User(
@@ -63,19 +64,19 @@ def add_user(id: int, name: str, email: str, engine = engine) -> None:
                     email=email,
                 )
             )
-            session.flush()
+            await session.flush()
         except IntegrityError:
-            session.rollback()
+            await session.rollback()
             raise # Do smth smart instead maybe
         except:
-            session.rollback()
+            await session.rollback()
             raise # Fallback in case the're other errors
         else:
-            session.commit()
+            await session.commit()
 
 
-def add_place(name: str, address: str, desc: str | None = None, engine = engine) -> None:
-    with Session(engine) as session:
+async def add_place(name: str, address: str, desc: str | None = None, async_session_maker = async_session_maker) -> None:
+    async with async_session_maker() as session:
         try:
             session.add(
                 Place(
@@ -84,15 +85,15 @@ def add_place(name: str, address: str, desc: str | None = None, engine = engine)
                     desc=desc,
                 )
             )
-            session.flush()
+            await session.flush()
         except IntegrityError:
-            session.rollback()
+            await session.rollback()
             raise
         except:
-            session.rollback()
+            await session.rollback()
             raise
         else:
-            session.commit()
+            await session.commit()
 
 
 """
@@ -115,34 +116,35 @@ def add_places_all(**kwargs: str | None, engine = engine) -> None:
 """
 
 
-def get_places(page: int, places_per_page: int, engine = engine) -> list[Place]:
-    with Session(engine) as session:
+async def get_places(page: int, places_per_page: int, async_session_maker = async_session_maker) -> list[Place]:
+    async with async_session_maker() as session:
         statement = select(Place).order_by(Place.name).\
             limit(places_per_page).offset((page - 1) * places_per_page)
-        result = session.execute(statement).scalars().all()
-    return list(result)
+        result = await session.execute(statement)
+        instance_list = list(result.scalars().all())
+    return instance_list
 
 
-def rate(user_id: int, address: str, score: int, engine = engine) -> None:
-    with Session(engine) as session:
+async def rate(user_id: int, address: str, score: int, async_session_maker = async_session_maker) -> None:
+    async with async_session_maker() as session:
         try:
             statement = update(UserPlace).\
                 where(UserPlace.fk_user_id == user_id, UserPlace.fk_place_address == address).\
                 values(score=score)
-            session.execute(statement)
-            session.flush()
+            await session.execute(statement)
+            await session.flush()
         except IntegrityError:
-            session.rollback()
+            await session.rollback()
             raise
         except:
-            session.rollback()
+            await session.rollback()
             raise
         else:
-            session.commit()
+            await session.commit()
 
 
-def add_user_place(user_id: int, address: str, score: int | None = None, engine = engine) -> None:
-    with Session(engine) as session:
+async def add_user_place(user_id: int, address: str, score: int | None = None, async_session_maker = async_session_maker) -> None:
+    async with async_session_maker() as session:
         try:
             session.add(
                 UserPlace(
@@ -151,25 +153,37 @@ def add_user_place(user_id: int, address: str, score: int | None = None, engine 
                 )
             )
             if (score):
-                rate(user_id, address, score)
-            session.flush()
+                await rate(user_id, address, score)
+            await session.flush()
         except IntegrityError:
-            session.rollback()
+            await session.rollback()
             raise
         except:
-            session.rollback()
+            await session.rollback()
             raise
         else:
-            session.commit()
+            await session.commit()
 
 
-def get_user_places(page: int, places_per_page: int, user_id: int, engine=engine) -> list[UserPlace]:
-    with Session(engine) as session:
-        statement = select(UserPlace).where(UserPlace.fk_user_id == user_id).\
-            limit(places_per_page).offset((page - 1) * places_per_page)
-        result = session.execute(statement).scalars().all()
-    return list(result)
+async def get_user_places(page: int, places_per_page: int, user_id: int, async_session_maker = async_session_maker) -> list[UserPlace]:
+    async with async_session_maker() as session:
+        user_instance = (
+            await session.scalars(
+                select(User).\
+                where(User.id == user_id).\
+                limit(places_per_page).\
+                offset((page - 1) * places_per_page)
+            )
+        ).one()
+        place_instance_list = [place for place in await user_instance.awaitable_attrs.user_places]
+    return place_instance_list
+
+
+async def async_main() -> None:
+    async with engine.begin() as connection:
+        await connection.run_sync(Base.metadata.create_all)
 
 
 if __name__ == "__main__":
-    Base.metadata.create_all(engine)
+    asyncio.run(async_main())
+
