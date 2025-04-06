@@ -1,6 +1,6 @@
-from sqlalchemy import CheckConstraint, ForeignKey, UniqueConstraint, create_engine
+from sqlalchemy import CheckConstraint, ForeignKey, UniqueConstraint, create_engine, select, update
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column
+from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, relationship
 
 
 class Base(DeclarativeBase):
@@ -13,6 +13,7 @@ class User(Base):
     id: Mapped[int] = mapped_column(unique=True, autoincrement=False, nullable=False)
     name: Mapped[str] = mapped_column(nullable=False)
     email: Mapped[str] = mapped_column(unique=True, nullable=False)
+    places: Mapped[list["UserPlace"]] = relationship(backref="user")
 
     __mapper_args__ = {
         "primary_key": id
@@ -22,7 +23,6 @@ class User(Base):
 class Place(Base):
     __tablename__ = "place"
 
-    fk_user_id: Mapped[int] = mapped_column(ForeignKey(User.id), nullable=True)
     name: Mapped[str] = mapped_column(nullable=False)
     address: Mapped[str] = mapped_column(unique=True, nullable=False)
     desc: Mapped[str] = mapped_column(nullable=True)
@@ -32,17 +32,17 @@ class Place(Base):
     }
 
 
-class Rating(Base):
-    __tablename__ = "rating"
+class UserPlace(Base):
+    __tablename__ = "user_place"
 
-    fk_place_address: Mapped[str] = mapped_column(ForeignKey(Place.address), nullable=False)
     fk_user_id: Mapped[int] = mapped_column(ForeignKey(User.id), nullable=False)
-    score: Mapped[int] = mapped_column(CheckConstraint("score BETWEEN 1 and 10"), nullable=False)
+    fk_place_address: Mapped[str] = mapped_column(ForeignKey(Place.address), nullable=False)
+    score: Mapped[int] = mapped_column(CheckConstraint("score BETWEEN 1 and 10"), nullable=True)
 
-    UniqueConstraint(fk_place_address, fk_user_id)
+    UniqueConstraint(fk_user_id, fk_place_address)
 
     __mapper_args__ = {
-        "primary_key": [fk_place_address]
+        "primary_key": [fk_user_id, fk_place_address]
     }
 
 
@@ -113,22 +113,19 @@ def add_places_all(**kwargs: str | None, engine = engine) -> None:
 
 def get_places(page: int, places_per_page: int, engine = engine) -> list[Place]:
     with Session(engine) as session:
-        query = session.query(Place).order_by(Place.name)
-    query = query.limit(places_per_page).offset((page - 1) * places_per_page)
-    result = query.all()
-    return result
+        statement = select(Place).order_by(Place.name).\
+            limit(places_per_page).offset((page - 1) * places_per_page)
+        result = session.execute(statement).scalars().all()
+    return list(result)
 
 
-def rate(address: str, user_id: int, score: int, engine = engine) -> None:
+def rate(user_id: int, address: str, score: int, engine = engine) -> None:
     with Session(engine) as session:
         try:
-            session.add(
-                Rating(
-                    fk_place_address=address,
-                    fk_user_id=user_id,
-                    score=score,
-                )
-            )
+            statement = update(UserPlace).\
+                where(UserPlace.fk_user_id == user_id, UserPlace.fk_place_address == address).\
+                values(score=score)
+            session.execute(statement)
             session.flush()
         except IntegrityError:
             session.rollback()
@@ -140,19 +137,17 @@ def rate(address: str, user_id: int, score: int, engine = engine) -> None:
             session.commit()
 
 
-def add_user_place(user_id: int, name: str, address: str, desc: str | None = None, score: int | None = None, engine = engine) -> None:
+def add_user_place(user_id: int, address: str, score: int | None = None, engine = engine) -> None:
     with Session(engine) as session:
         try:
             session.add(
-                Place(
+                UserPlace(
                     fk_user_id=user_id,
-                    name=name,
-                    address=address,
-                    desc=desc,
+                    fk_place_address=address,
                 )
             )
             if (score):
-                rate(address, user_id, score)
+                rate(user_id, address, score)
             session.flush()
         except IntegrityError:
             session.rollback()
@@ -164,12 +159,13 @@ def add_user_place(user_id: int, name: str, address: str, desc: str | None = Non
             session.commit()
 
 
-def get_user_places(page: int, places_per_page: int, user_id: int, engine=engine) -> list[Place]:
+def get_user_places(page: int, places_per_page: int, user_id: int, engine=engine) -> list[UserPlace]:
     with Session(engine) as session:
-        query = session.query(Place).filter(Place.fk_user_id == user_id)
-    query = query.limit(places_per_page).offset((page - 1) * places_per_page)
-    result = query.all()
-    return result
+        statement = select(UserPlace).where(UserPlace.fk_user_id == user_id).\
+            limit(places_per_page).offset((page - 1) * places_per_page)
+        result = session.execute(statement).scalars().all()
+    return list(result)
 
 
-Base.metadata.create_all(engine)
+if __name__ == "__main__":
+    Base.metadata.create_all(engine)
