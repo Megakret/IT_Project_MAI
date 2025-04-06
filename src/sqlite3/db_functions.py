@@ -1,9 +1,12 @@
+import asyncio
+
 from sqlalchemy import CheckConstraint, ForeignKey, UniqueConstraint, create_engine, select, update
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncAttrs
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, relationship
+from sqlalchemy.exc import IntegrityError
 
 
-class Base(DeclarativeBase):
+class Base(AsyncAttrs, DeclarativeBase):
     pass
 
 
@@ -13,7 +16,7 @@ class User(Base):
     id: Mapped[int] = mapped_column(unique=True, autoincrement=False, nullable=False)
     name: Mapped[str] = mapped_column(nullable=False)
     email: Mapped[str] = mapped_column(unique=True, nullable=False)
-    places: Mapped[list["UserPlace"]] = relationship(backref="user")
+    user_places: Mapped[list["UserPlace"]] = relationship(backref="user")
 
     __mapper_args__ = {
         "primary_key": id
@@ -26,6 +29,7 @@ class Place(Base):
     name: Mapped[str] = mapped_column(nullable=False)
     address: Mapped[str] = mapped_column(unique=True, nullable=False)
     desc: Mapped[str] = mapped_column(nullable=True)
+    user_places: Mapped[list["UserPlace"]] = relationship(backref="place")
 
     __mapper_args__ = {
         "primary_key": address
