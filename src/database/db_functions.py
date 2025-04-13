@@ -1,4 +1,5 @@
 import asyncio
+import sys
 
 from sqlalchemy import CheckConstraint, ForeignKey, UniqueConstraint, select, update
 from sqlalchemy.ext.asyncio import AsyncAttrs, async_sessionmaker, create_async_engine
@@ -50,7 +51,7 @@ class UserPlace(Base):
     }
 
 
-engine = create_async_engine("sqlite+aiosqlite:///database.db")
+engine = create_async_engine("sqlite+aiosqlite:///src/database/database.db")
 async_session_maker = async_sessionmaker(engine, expire_on_commit=False)
 
 
@@ -65,12 +66,14 @@ async def add_user(id: int, name: str, email: str, async_session_maker = async_s
                 )
             )
             await session.flush()
-        except IntegrityError:
+        except IntegrityError as error:
+            await session.rollback() # Do smth smart instead maybe
+            print(f"UniqueConstraintException: {error}")
+            sys.exit(1)
+        except Exception as error: # Fallback in case there're other errors
             await session.rollback()
-            raise # Do smth smart instead maybe
-        except:
-            await session.rollback()
-            raise # Fallback in case the're other errors
+            print(f"Unspecified Exception: {error}")
+            sys.exit(1)
         else:
             await session.commit()
 
@@ -86,12 +89,14 @@ async def add_place(name: str, address: str, desc: str | None = None, async_sess
                 )
             )
             await session.flush()
-        except IntegrityError:
+        except IntegrityError as error:
+            await session.rollback() # Do smth smart instead maybe
+            print(f"UniqueConstraintException: {error}")
+            sys.exit(1)
+        except Exception as error: # Fallback in case there're other errors
             await session.rollback()
-            raise
-        except:
-            await session.rollback()
-            raise
+            print(f"Unspecified Exception: {error}")
+            sys.exit(1)
         else:
             await session.commit()
 
@@ -113,12 +118,14 @@ async def rate(user_id: int, address: str, score: int, async_session_maker = asy
                 values(score=score)
             await session.execute(statement)
             await session.flush()
-        except IntegrityError:
+        except IntegrityError as error:
+            await session.rollback() # Do smth smart instead maybe
+            print(f"UniqueConstraintException: {error}")
+            sys.exit(1)
+        except Exception as error: # Fallback in case there're other errors
             await session.rollback()
-            raise
-        except:
-            await session.rollback()
-            raise
+            print(f"Unspecified Exception: {error}")
+            sys.exit(1)
         else:
             await session.commit()
 
@@ -135,12 +142,14 @@ async def add_user_place(user_id: int, address: str, score: int | None = None, a
             if (score):
                 await rate(user_id, address, score)
             await session.flush()
-        except IntegrityError:
+        except IntegrityError as error:
+            await session.rollback() # Do smth smart instead maybe
+            print(f"UniqueConstraintException: {error}")
+            sys.exit(1)
+        except Exception as error: # Fallback in case there're other errors
             await session.rollback()
-            raise
-        except:
-            await session.rollback()
-            raise
+            print(f"Unspecified Exception: {error}")
+            sys.exit(1)
         else:
             await session.commit()
 
