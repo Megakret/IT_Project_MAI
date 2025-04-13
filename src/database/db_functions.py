@@ -1,10 +1,12 @@
 import asyncio
-import sys
+import sqlite3
 
 from sqlalchemy import CheckConstraint, ForeignKey, UniqueConstraint, select, update
 from sqlalchemy.ext.asyncio import AsyncAttrs, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.exc import IntegrityError
+
+from db_exceptions import UniqueConstraintError, ConstraintError
 
 
 class Base(AsyncAttrs, DeclarativeBase):
@@ -67,13 +69,17 @@ async def add_user(id: int, name: str, email: str, async_session_maker = async_s
             )
             await session.flush()
         except IntegrityError as error:
-            await session.rollback() # Do smth smart instead maybe
-            print(f"UniqueConstraintException: {error}")
-            sys.exit(1)
-        except Exception as error: # Fallback in case there're other errors
             await session.rollback()
-            print(f"Unspecified Exception: {error}")
-            sys.exit(1)
+            if isinstance(error.orig, sqlite3.IntegrityError):
+                if error.orig.sqlite_errorcode == 2067:
+                    raise UniqueConstraintError(["email"], [email])
+                else:
+                    raise ConstraintError(["email"], [email])
+            else:
+                raise
+        except:
+            await session.rollback()
+            raise
         else:
             await session.commit()
 
@@ -90,13 +96,17 @@ async def add_place(name: str, address: str, desc: str | None = None, async_sess
             )
             await session.flush()
         except IntegrityError as error:
-            await session.rollback() # Do smth smart instead maybe
-            print(f"UniqueConstraintException: {error}")
-            sys.exit(1)
-        except Exception as error: # Fallback in case there're other errors
             await session.rollback()
-            print(f"Unspecified Exception: {error}")
-            sys.exit(1)
+            if isinstance(error.orig, sqlite3.IntegrityError):
+                if error.orig.sqlite_errorcode == 2067:
+                    raise UniqueConstraintError(["address"], [address])
+                else:
+                    raise ConstraintError(["address"], [address])
+            else:
+                raise
+        except:
+            await session.rollback()
+            raise
         else:
             await session.commit()
 
@@ -119,13 +129,17 @@ async def rate(user_id: int, address: str, score: int, async_session_maker = asy
             await session.execute(statement)
             await session.flush()
         except IntegrityError as error:
-            await session.rollback() # Do smth smart instead maybe
-            print(f"UniqueConstraintException: {error}")
-            sys.exit(1)
-        except Exception as error: # Fallback in case there're other errors
             await session.rollback()
-            print(f"Unspecified Exception: {error}")
-            sys.exit(1)
+            if isinstance(error.orig, sqlite3.IntegrityError):
+                if error.orig.sqlite_errorcode == 2067:
+                    raise UniqueConstraintError(["user_id", "address"], [str(user_id), address])
+                else:
+                    raise ConstraintError(["user_id", "address"], [str(user_id), address])
+            else:
+                raise
+        except:
+            await session.rollback()
+            raise
         else:
             await session.commit()
 
@@ -143,13 +157,17 @@ async def add_user_place(user_id: int, address: str, score: int | None = None, a
                 await rate(user_id, address, score)
             await session.flush()
         except IntegrityError as error:
-            await session.rollback() # Do smth smart instead maybe
-            print(f"UniqueConstraintException: {error}")
-            sys.exit(1)
-        except Exception as error: # Fallback in case there're other errors
             await session.rollback()
-            print(f"Unspecified Exception: {error}")
-            sys.exit(1)
+            if isinstance(error.orig, sqlite3.IntegrityError):
+                if error.orig.sqlite_errorcode == 2067:
+                    raise UniqueConstraintError(["user_id", "address"], [str(user_id), address])
+                else:
+                    raise ConstraintError(["user_id", "address"], [str(user_id), address])
+            else:
+                raise
+        except:
+            await session.rollback()
+            raise
         else:
             await session.commit()
 
