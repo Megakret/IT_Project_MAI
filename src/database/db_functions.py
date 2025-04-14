@@ -1,9 +1,12 @@
 import asyncio
+import sqlite3
 
 from sqlalchemy import CheckConstraint, ForeignKey, UniqueConstraint, select, update
 from sqlalchemy.ext.asyncio import AsyncAttrs, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.exc import IntegrityError
+
+from db_exceptions import UniqueConstraintError, ConstraintError
 
 
 class Base(AsyncAttrs, DeclarativeBase):
@@ -50,7 +53,7 @@ class UserPlace(Base):
     }
 
 
-engine = create_async_engine("sqlite+aiosqlite:///database.db")
+engine = create_async_engine("sqlite+aiosqlite:///src/database/database.db")
 async_session_maker = async_sessionmaker(engine, expire_on_commit=False)
 
 
@@ -65,12 +68,18 @@ async def add_user(id: int, name: str, email: str, async_session_maker = async_s
                 )
             )
             await session.flush()
-        except IntegrityError:
+        except IntegrityError as error:
             await session.rollback()
-            raise # Do smth smart instead maybe
+            if isinstance(error.orig, sqlite3.IntegrityError):
+                if error.orig.sqlite_errorcode == 2067:
+                    raise UniqueConstraintError(["email"], [email])
+                else:
+                    raise ConstraintError(["email"], [email])
+            else:
+                raise
         except:
             await session.rollback()
-            raise # Fallback in case the're other errors
+            raise
         else:
             await session.commit()
 
@@ -86,9 +95,15 @@ async def add_place(name: str, address: str, desc: str | None = None, async_sess
                 )
             )
             await session.flush()
-        except IntegrityError:
+        except IntegrityError as error:
             await session.rollback()
-            raise
+            if isinstance(error.orig, sqlite3.IntegrityError):
+                if error.orig.sqlite_errorcode == 2067:
+                    raise UniqueConstraintError(["address"], [address])
+                else:
+                    raise ConstraintError(["address"], [address])
+            else:
+                raise
         except:
             await session.rollback()
             raise
@@ -113,9 +128,15 @@ async def rate(user_id: int, address: str, score: int, async_session_maker = asy
                 values(score=score)
             await session.execute(statement)
             await session.flush()
-        except IntegrityError:
+        except IntegrityError as error:
             await session.rollback()
-            raise
+            if isinstance(error.orig, sqlite3.IntegrityError):
+                if error.orig.sqlite_errorcode == 2067:
+                    raise UniqueConstraintError(["user_id", "address"], [str(user_id), address])
+                else:
+                    raise ConstraintError(["user_id", "address"], [str(user_id), address])
+            else:
+                raise
         except:
             await session.rollback()
             raise
@@ -135,9 +156,15 @@ async def add_user_place(user_id: int, address: str, score: int | None = None, a
             if (score):
                 await rate(user_id, address, score)
             await session.flush()
-        except IntegrityError:
+        except IntegrityError as error:
             await session.rollback()
-            raise
+            if isinstance(error.orig, sqlite3.IntegrityError):
+                if error.orig.sqlite_errorcode == 2067:
+                    raise UniqueConstraintError(["user_id", "address"], [str(user_id), address])
+                else:
+                    raise ConstraintError(["user_id", "address"], [str(user_id), address])
+            else:
+                raise
         except:
             await session.rollback()
             raise
