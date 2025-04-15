@@ -93,139 +93,135 @@ async def add_user(session: AsyncSession, id: int, name: str, email: str) -> Non
 
 
 async def add_place(
-    async_session_maker: async_sessionmaker,
+    session: AsyncSession,
     name: str,
     address: str,
     desc: str | None = None,
 ) -> None:
-    async with async_session_maker() as session:
-        try:
-            session.add(
-                Place(
-                    name=name,
-                    address=address,
-                    desc=desc,
-                )
+    try:
+        session.add(
+            Place(
+                name=name,
+                address=address,
+                desc=desc,
             )
-            await session.flush()
-        except IntegrityError as error:
-            await session.rollback()
-            if isinstance(error.orig, sqlite3.IntegrityError):
-                if error.orig.sqlite_errorcode == 2067:
-                    raise UniqueConstraintError(["address"], [address])
-                else:
-                    raise ConstraintError(["address"], [address])
+        )
+        await session.flush()
+    except IntegrityError as error:
+        await session.rollback()
+        if isinstance(error.orig, sqlite3.IntegrityError):
+            if error.orig.sqlite_errorcode == 2067:
+                raise UniqueConstraintError(["address"], [address])
             else:
-                raise
-        except:
-            await session.rollback()
-            raise
+                raise ConstraintError(["address"], [address])
         else:
-            await session.commit()
+            raise
+    except:
+        await session.rollback()
+        raise
+    else:
+        await session.commit()
 
 
 async def get_places(
-    async_session_maker: async_sessionmaker, page: int, places_per_page: int
+    session: AsyncSession, page: int, places_per_page: int
 ) -> list[Place]:
-    async with async_session_maker() as session:
-        statement = (
-            select(Place)
-            .order_by(Place.name)
-            .limit(places_per_page)
-            .offset((page - 1) * places_per_page)
-        )
-        result = await session.execute(statement)
-        instance_list = list(result.scalars().all())
+    statement = (
+        select(Place)
+        .order_by(Place.name)
+        .limit(places_per_page)
+        .offset((page - 1) * places_per_page)
+    )
+    result = await session.execute(statement)
+    instance_list = list(result.scalars().all())
     return instance_list
 
 
 async def rate(
-    async_session_maker: async_sessionmaker,
+    session: AsyncSession,
     user_id: int,
     address: str,
     score: int,
 ) -> None:
-    async with async_session_maker() as session:
-        try:
-            statement = (
-                update(UserPlace)
-                .where(
-                    UserPlace.fk_user_id == user_id,
-                    UserPlace.fk_place_address == address,
-                )
-                .values(score=score)
+    try:
+        statement = (
+            update(UserPlace)
+            .where(
+                UserPlace.fk_user_id == user_id,
+                UserPlace.fk_place_address == address,
             )
-            await session.execute(statement)
-            await session.flush()
-        except IntegrityError as error:
-            await session.rollback()
-            if isinstance(error.orig, sqlite3.IntegrityError):
-                if error.orig.sqlite_errorcode == 2067:
-                    raise UniqueConstraintError(
-                        ["user_id", "address"], [str(user_id), address]
-                    )
-                else:
-                    raise ConstraintError(
-                        ["user_id", "address"], [str(user_id), address]
-                    )
+            .values(score=score)
+        )
+        await session.execute(statement)
+        await session.flush()
+    except IntegrityError as error:
+        await session.rollback()
+        if isinstance(error.orig, sqlite3.IntegrityError):
+            if error.orig.sqlite_errorcode == 2067:
+                raise UniqueConstraintError(
+                    ["user_id", "address"], [str(user_id), address]
+                )
             else:
-                raise
-        except:
-            await session.rollback()
-            raise
+                raise ConstraintError(
+                    ["user_id", "address"], [str(user_id), address]
+                )
         else:
-            await session.commit()
+            raise
+    except:
+        await session.rollback()
+        raise
+    else:
+        await session.commit()
 
 
 async def add_user_place(
-    async_session_maker: async_sessionmaker,
+    session: AsyncSession,
     user_id: int,
     address: str,
     score: int | None = None,
 ) -> None:
-    async with async_session_maker() as session:
-        try:
-            session.add(
-                UserPlace(fk_user_id=user_id, fk_place_address=address, score=score)
-            )
-            # if (score):
-            #     await rate(user_id, address, score)
-            await session.flush()
-        except IntegrityError as error:
-            await session.rollback()
-            if isinstance(error.orig, sqlite3.IntegrityError):
-                if error.orig.sqlite_errorcode == 2067:
-                    raise UniqueConstraintError(
-                        ["user_id", "address"], [str(user_id), address]
-                    )
-                else:
-                    raise ConstraintError(
-                        ["user_id", "address"], [str(user_id), address]
-                    )
+    try:
+        session.add(
+            UserPlace(fk_user_id=user_id, fk_place_address=address, score=score)
+        )
+        await session.flush()
+        if (score):
+            await rate(session, user_id, address, score)
+        await session.flush()
+    except IntegrityError as error:
+        await session.rollback()
+        if isinstance(error.orig, sqlite3.IntegrityError):
+            if error.orig.sqlite_errorcode == 2067:
+                raise UniqueConstraintError(
+                    ["user_id", "address"], [str(user_id), address]
+                )
             else:
-                raise
-        except:
-            await session.rollback()
-            raise
+                raise ConstraintError(
+                    ["user_id", "address"], [str(user_id), address]
+                )
         else:
-            await session.commit()
+            raise
+    except:
+        await session.rollback()
+        raise
+    else:
+        await session.commit()
 
 
 async def get_user_places(
-    async_session_maker: async_sessionmaker,
+    session: AsyncSession,
     page: int,
     places_per_page: int,
     user_id: int,
 ) -> list[UserPlace]:
-    async with async_session_maker() as session:
-        statement = (
-            select(UserPlace)
-            .where(UserPlace.fk_user_id == user_id)
-            .limit(places_per_page)
-            .offset((page - 1) * places_per_page)
-        )
-        result = await session.execute(statement)
-        instance_list = list(result.scalars().all())
+    statement = (
+        select(UserPlace)
+        .where(UserPlace.fk_user_id == user_id)
+        .limit(places_per_page)
+        .offset((page - 1) * places_per_page)
+    )
+    result = await session.execute(statement)
+    instance_list = list(result.scalars().all())
     return instance_list
 
 
