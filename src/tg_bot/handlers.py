@@ -7,6 +7,7 @@ from aiogram.methods.send_message import SendMessage
 from aiogram.types import ReplyKeyboardRemove
 from aiogram import F
 import asyncio
+from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
 from api.geosuggest.geosuggest import Geosuggest, GeosuggestResult
 from api.geosuggest.place import Place
 from tg_bot.keyboards import suggest_place_kbs, starter_kb
@@ -14,7 +15,6 @@ from tg_bot.aiogram_coros import message_sender_wrap, custom_clear
 import database.db_functions as db
 from database.db_exceptions import UniqueConstraintError
 
-router = Router()
 
 
 class ScoreOutOfRange(Exception):
@@ -28,14 +28,19 @@ class NewPlaceFSM(StatesGroup):
     enter_score = State()
 
 
+router = Router()
+
+
 @router.message(CommandStart())
-async def handle_cmd_start(message: Message, state: FSMContext) -> None:
+async def handle_cmd_start(message: Message, state: FSMContext, session: AsyncSession) -> None:
     await message.answer(
         "Привет. Напиши /add_place, чтобы добавить место для досуга",
         reply_markup=starter_kb,
     )
     try:
-        await db.add_user(message.from_user.id, message.from_user.first_name, "blank")
+        await db.add_user(
+            session, message.from_user.id, message.from_user.first_name, "blank"
+        )
     except UniqueConstraintError as e:
         print(e.message)
         pass
@@ -92,22 +97,22 @@ async def enter_description(message: Message, state: FSMContext):
     await state.set_state(NewPlaceFSM.enter_score)
 
 
-async def answer_form_result(message: Message, state: FSMContext):
+async def answer_form_result(message: Message, state: FSMContext, session_maker: async_sessionmaker):
     data = await state.get_data()
     place: Place = data["place"]
     try:
-        await db.add_place(place.get_name(), place.get_info(), data["description"])
+        await db.add_place(session_maker, place.get_name(), place.get_info(), data["description"])
     except UniqueConstraintError as e:
-        print("Already existing place has been tried to add")
+        print("Already existing place has been tried to add to global list")
         print(e.message)
     try:
-        await db.add_user_place(message.from_user.id, place.get_info(), data["score"])
+        await db.add_user_place(session_maker, message.from_user.id, place.get_info(), data["score"])
         answer: str = "\n".join(
             (
                 f"Данные о месте: {place.get_name()}\n{place.get_info()}",
                 f"Ваше описание: {data["description"]}",
                 f"Ваша оценка месту: {data["score"]}",
-            )   
+            )
         )
         await message.answer(answer)
     except UniqueConstraintError as e:
@@ -117,13 +122,13 @@ async def answer_form_result(message: Message, state: FSMContext):
 
 
 @router.message(NewPlaceFSM.enter_score)
-async def enter_score(message: Message, state: FSMContext):
+async def enter_score(message: Message, state: FSMContext, session_maker: async_sessionmaker):
     try:
         score: int = int(message.text)
         if not (1 <= score <= 10):
             raise ScoreOutOfRange()
         await state.update_data(score=score)
-        await answer_form_result(message, state)
+        await answer_form_result(message, state, session_maker)
     except ValueError:
         await message.answer("Введите число!")
     except ScoreOutOfRange:
