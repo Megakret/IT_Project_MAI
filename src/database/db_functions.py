@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncAttrs, async_sessionmaker, create_async_
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.exc import IntegrityError
 
-from db_exceptions import UniqueConstraintError, ConstraintError
+from database.db_exceptions import UniqueConstraintError, ConstraintError
 
 
 class Base(AsyncAttrs, DeclarativeBase):

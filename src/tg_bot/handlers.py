@@ -11,6 +11,8 @@ from api.geosuggest.geosuggest import Geosuggest, GeosuggestResult
 from api.geosuggest.place import Place
 from tg_bot.keyboards import suggest_place_kbs, starter_kb
 from tg_bot.aiogram_coros import message_sender_wrap, custom_clear
+import database.db_functions as db
+from database.db_exceptions import UniqueConstraintError
 
 router = Router()
 
@@ -32,6 +34,11 @@ async def handle_cmd_start(message: Message, state: FSMContext) -> None:
         "Привет. Напиши /add_place, чтобы добавить место для досуга",
         reply_markup=starter_kb,
     )
+    try:
+        await db.add_user(message.from_user.id, message.from_user.first_name, "blank")
+    except UniqueConstraintError as e:
+        print(e.message)
+        pass
     await state.clear()
 
 
@@ -88,15 +95,24 @@ async def enter_description(message: Message, state: FSMContext):
 async def answer_form_result(message: Message, state: FSMContext):
     data = await state.get_data()
     place: Place = data["place"]
-    answer: str = "\n".join(
-        (
-            f"Ваше название места: {data["name"]}",
-            f"Данные о месте: {place.get_name()}\n{place.get_info()}",
-            f"Ваше описание: {data["description"]}",
-            f"Ваша оценка месту: {data["score"]}",
+    try:
+        await db.add_place(place.get_name(), place.get_info(), data["description"])
+    except UniqueConstraintError as e:
+        print("Already existing place has been tried to add")
+        print(e.message)
+    try:
+        await db.add_user_place(message.from_user.id, place.get_info(), data["score"])
+        answer: str = "\n".join(
+            (
+                f"Данные о месте: {place.get_name()}\n{place.get_info()}",
+                f"Ваше описание: {data["description"]}",
+                f"Ваша оценка месту: {data["score"]}",
+            )   
         )
-    )
-    await message.answer(answer)
+        await message.answer(answer)
+    except UniqueConstraintError as e:
+        print(e.message)
+        await message.answer("Вы уже добавляли это место")
     await custom_clear(state)
 
 
