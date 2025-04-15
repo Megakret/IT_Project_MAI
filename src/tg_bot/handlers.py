@@ -7,7 +7,7 @@ from aiogram.methods.send_message import SendMessage
 from aiogram.types import ReplyKeyboardRemove
 from aiogram import F
 import asyncio
-from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession
 from api.geosuggest.geosuggest import Geosuggest, GeosuggestResult
 from api.geosuggest.place import Place
 from tg_bot.keyboards import suggest_place_kbs, starter_kb
@@ -97,16 +97,16 @@ async def enter_description(message: Message, state: FSMContext):
     await state.set_state(NewPlaceFSM.enter_score)
 
 
-async def answer_form_result(message: Message, state: FSMContext, session_maker: async_sessionmaker):
+async def answer_form_result(message: Message, state: FSMContext, session: AsyncSession):
     data = await state.get_data()
     place: Place = data["place"]
     try:
-        await db.add_place(session_maker, place.get_name(), place.get_info(), data["description"])
+        await db.add_place(session, place.get_name(), place.get_info(), data["description"])
     except UniqueConstraintError as e:
         print("Already existing place has been tried to add to global list")
         print(e.message)
     try:
-        await db.add_user_place(session_maker, message.from_user.id, place.get_info(), data["score"])
+        await db.add_user_place(session, message.from_user.id, place.get_info(), data["score"])
         answer: str = "\n".join(
             (
                 f"Данные о месте: {place.get_name()}\n{place.get_info()}",
@@ -114,21 +114,21 @@ async def answer_form_result(message: Message, state: FSMContext, session_maker:
                 f"Ваша оценка месту: {data["score"]}",
             )
         )
-        await message.answer(answer)
+        await message.answer(answer, reply_markup=starter_kb)
     except UniqueConstraintError as e:
         print(e.message)
-        await message.answer("Вы уже добавляли это место")
+        await message.answer("Вы уже добавляли это место", reply_markup=starter_kb)
     await custom_clear(state)
 
 
 @router.message(NewPlaceFSM.enter_score)
-async def enter_score(message: Message, state: FSMContext, session_maker: async_sessionmaker):
+async def enter_score(message: Message, state: FSMContext, session: AsyncSession):
     try:
         score: int = int(message.text)
         if not (1 <= score <= 10):
             raise ScoreOutOfRange()
         await state.update_data(score=score)
-        await answer_form_result(message, state, session_maker)
+        await answer_form_result(message, state, session)
     except ValueError:
         await message.answer("Введите число!")
     except ScoreOutOfRange:

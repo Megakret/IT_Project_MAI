@@ -29,13 +29,13 @@ starter_kb = ReplyKeyboardMarkup(
 )
 
 
-def generate_page_kb(page: int, max_page: int) -> InlineKeyboardMarkup:
+def generate_page_kb(page: int) -> InlineKeyboardMarkup:
     page_select_kb = InlineKeyboardMarkup(
         inline_keyboard=[
             [
                 InlineKeyboardButton(text="<-", callback_data="prev_page"),
                 InlineKeyboardButton(
-                    text=f"{page+1}/{max_page}", callback_data="page_indicator"
+                    text=f"{page}", callback_data="page_indicator"
                 ),
                 InlineKeyboardButton(text="->", callback_data="next_page"),
             ]
