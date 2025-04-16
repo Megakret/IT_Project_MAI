@@ -69,9 +69,7 @@ async def check_place(message: Message, state: FSMContext):
     await geosuggest_selector.show_suggestions(message, state)
 
 
-@router.callback_query(
-    F.data.contains(KEYBOARD_PREFIX), NewPlaceFSM.choose_place
-)
+@router.callback_query(F.data.contains(KEYBOARD_PREFIX), NewPlaceFSM.choose_place)
 async def choose_suggested_place(callback: CallbackQuery, state: FSMContext):
     await geosuggest_selector.selected_place(callback, state)
     await callback.message.answer("Введите свое описание места")

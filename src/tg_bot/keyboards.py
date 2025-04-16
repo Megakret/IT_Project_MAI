@@ -28,7 +28,7 @@ starter_kb = ReplyKeyboardMarkup(
         [KeyboardButton(text="/add_place")],
         [KeyboardButton(text="/place_list")],
         [KeyboardButton(text="/user_place_list")],
-        [KeyboardButton(text="/get_place")]
+        [KeyboardButton(text="/get_place")],
     ],
     resize_keyboard=True,
 )

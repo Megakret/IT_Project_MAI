@@ -28,10 +28,12 @@ async def start_gpt(message: Message, state: FSMContext):
         "Хорошо, давай поговорим. Чтобы прекратить диалог введите команду /exit"
     )
 
+
 @router.message(GptTalkFSM.talk_state, Command("exit"))
 async def exit_gpt_mode(message: Message, state: FSMContext):
     await custom_clear(state)
     await message.answer("Вы вышли из режима gpt")
+
 
 @router.message(GptTalkFSM.talk_state)
 async def send_message_to_gpt(message: Message, state: FSMContext):
@@ -53,4 +55,3 @@ async def send_message_to_gpt(message: Message, state: FSMContext):
     except ReadTimeout as e:
         print(e)
         await message.answer("Не можем подклчиться к нейросети, попробуйте позже")
-

@@ -11,6 +11,7 @@ router = Router()
 PLACES_PER_PAGE = 5
 POSTFIX = "real_place"
 
+
 async def get_formatted_list(
     page: int, places_per_page: int, session: AsyncSession, **kwargs
 ) -> str:
@@ -21,13 +22,13 @@ async def get_formatted_list(
     return place_formatted_list
 
 
-paginator_service = PaginatorService(
-    POSTFIX, PLACES_PER_PAGE, get_formatted_list
-)
+paginator_service = PaginatorService(POSTFIX, PLACES_PER_PAGE, get_formatted_list)
+
 
 @router.message(Command("place_list"))
 async def show_place_list(message: Message, state: FSMContext, session: AsyncSession):
     await paginator_service.start_paginator(message, state, session)
+
 
 @router.callback_query(F.data == NEXT_PAGE + POSTFIX)
 async def next_page(callback: CallbackQuery, state: FSMContext, session: AsyncSession):

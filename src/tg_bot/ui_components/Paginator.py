@@ -109,7 +109,9 @@ class PaginatorService:
     async def indicator_clicked(
         self, callback: CallbackQuery, state: FSMContext, *args, **kwargs
     ) -> None:
-        paginator: Paginator = await self._prepare_paginator(callback, state, *args, **kwargs)
+        paginator: Paginator = await self._prepare_paginator(
+            callback, state, *args, **kwargs
+        )
         await paginator.indicator_clicked(callback)
 
     async def show_next_page(
