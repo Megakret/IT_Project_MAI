@@ -225,7 +225,7 @@ async def get_user_places(
     return instance_list
 
 
-async def get_place_with_score(session: AsyncSession, address: str) -> list[Place | float]:
+async def get_place_with_score(session: AsyncSession, address: str) -> list[Place | float | None]:
     statement = (
         select(Place, func.avg(UserPlace.score))
         .outerjoin(UserPlace, Place.address == UserPlace.fk_place_address)
