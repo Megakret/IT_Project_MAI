@@ -222,7 +222,7 @@ async def get_user_places(
         .offset((page - 1) * places_per_page)
     )
     result = await session.execute(statement)
-    instance_list = [row.tupe() for row in result.all()]
+    instance_list = [row.tuple() for row in result.all()]
     return instance_list
 
 
