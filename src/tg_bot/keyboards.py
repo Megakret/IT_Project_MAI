@@ -7,6 +7,9 @@ from aiogram.types import (
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 SUGGEST_AMOUNT: int = 5
+NEXT_PAGE = "next_page_"
+PREV_PAGE = "prev_page_"
+INDICATOR_CLICKED = "page_indicator_"
 suggest_place_kbs: list[InlineKeyboardMarkup] = []
 for i in range(SUGGEST_AMOUNT):
     suggest_place_kbs.append(
@@ -24,6 +27,7 @@ starter_kb = ReplyKeyboardMarkup(
     keyboard=[
         [KeyboardButton(text="/add_place")],
         [KeyboardButton(text="/place_list")],
+        [KeyboardButton(text="/user_place_list")]
     ],
     resize_keyboard=True,
 )
@@ -33,11 +37,11 @@ def generate_page_kb(page: int, postfix: str) -> InlineKeyboardMarkup:
     page_select_kb = InlineKeyboardMarkup(
         inline_keyboard=[
             [
-                InlineKeyboardButton(text="<-", callback_data=f"prev_page_{postfix}"),
+                InlineKeyboardButton(text="<-", callback_data=PREV_PAGE + postfix),
                 InlineKeyboardButton(
-                    text=f"{page}", callback_data=f"page_indicator_{postfix}"
+                    text=f"{page}", callback_data=INDICATOR_CLICKED + postfix
                 ),
-                InlineKeyboardButton(text="->", callback_data=f"next_page_{postfix}"),
+                InlineKeyboardButton(text="->", callback_data=NEXT_PAGE + postfix),
             ]
         ]
     )

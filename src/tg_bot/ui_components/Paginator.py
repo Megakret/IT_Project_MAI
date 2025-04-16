@@ -89,17 +89,17 @@ class PaginatorService:
         paginator = Paginator(self._items_per_page, self._get_data_by_page, self)
         await paginator.setup(message, *args, **kwargs)
         await utils.custom_clear(state)
-        await state.update_data(paginator=paginator)
+        await state.update_data({("paginator" + self._postfix): paginator})
 
-    async def prepare_paginator(
+    async def _prepare_paginator(
         self, callback: CallbackQuery, state: FSMContext, *args, **kwargs
     ) -> Paginator:
         data: dict = await state.get_data()
         try:
-            paginator: Paginator = data["paginator"]
+            paginator: Paginator = data["paginator" + self._postfix]
         except KeyError:
             paginator = Paginator(self._items_per_page, self._get_data_by_page, self)
-            await state.update_data(paginator=paginator)
+            await state.update_data({("paginator" + self._postfix): paginator})
         if (
             paginator.message is None
         ) or callback.message.message_id != paginator.message.message_id:
@@ -109,22 +109,13 @@ class PaginatorService:
     async def indicator_clicked(
         self, callback: CallbackQuery, state: FSMContext, *args, **kwargs
     ) -> None:
-        data: dict = await state.get_data()
-        try:
-            paginator: Paginator = data["paginator"]
-        except KeyError:
-            paginator = Paginator(self._items_per_page, self._get_data_by_page, self)
-            await state.update_data(paginator=paginator)
-        if (
-            paginator.message is None
-        ) or callback.message.message_id != paginator.message.message_id:
-            await paginator.reattach(callback.message, *args, **kwargs)
+        paginator: Paginator = await self._prepare_paginator(callback, state, *args, **kwargs)
         await paginator.indicator_clicked(callback)
 
     async def show_next_page(
         self, callback: CallbackQuery, state: FSMContext, *args, **kwargs
     ) -> None:
-        paginator: Paginator = await self.prepare_paginator(
+        paginator: Paginator = await self._prepare_paginator(
             callback, state, *args, **kwargs
         )
         await paginator.show_next_page(callback, *args, **kwargs)
@@ -132,31 +123,27 @@ class PaginatorService:
     async def show_prev_page(
         self, callback: CallbackQuery, state: FSMContext, *args, **kwargs
     ) -> None:
-        paginator: Paginator = await self.prepare_paginator(
+        paginator: Paginator = await self._prepare_paginator(
             callback, state, *args, **kwargs
         )
         await paginator.show_prev_page(callback, *args, **kwargs)
 
     def __init__(
         self,
-        router: Router,
         postfix: str,
-        appear_command: str,
         items_per_page: int,
         get_data_by_page: Callable[[int, int], Awaitable[list[str]]],
     ):
-        self._router = router
         self._postfix = postfix
-        self._appear_command = appear_command
         self._items_per_page = items_per_page
         self._get_data_by_page = get_data_by_page
-        router.message.register(self.start_paginator, Command(appear_command))
-        router.callback_query.register(
-            self.show_next_page, F.data == f"next_page_{postfix}"
-        )
-        router.callback_query.register(
-            self.show_prev_page, F.data == f"prev_page_{postfix}"
-        )
-        router.callback_query.register(
-            self.indicator_clicked, F.data == f"page_indicator_{postfix}"
-        )
+        # router.message.register(self.start_paginator, Command(appear_command))
+        # router.callback_query.register(
+        #     self.show_next_page, F.data == f"next_page_{postfix}"
+        # )
+        # router.callback_query.register(
+        #     self.show_prev_page, F.data == f"prev_page_{postfix}"
+        # )
+        # router.callback_query.register(
+        #     self.indicator_clicked, F.data == f"page_indicator_{postfix}"
+        # )
