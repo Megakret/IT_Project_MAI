@@ -1,7 +1,7 @@
 import asyncio
 import sqlite3
 
-from sqlalchemy import CheckConstraint, ForeignKey, UniqueConstraint, select, update
+from sqlalchemy import CheckConstraint, ForeignKey, UniqueConstraint, func, select, update
 from sqlalchemy.ext.asyncio import (
     AsyncAttrs,
     async_sessionmaker,
@@ -223,6 +223,18 @@ async def get_user_places(
     result = await session.execute(statement)
     instance_list = list(result.scalars().all())
     return instance_list
+
+
+async def get_place_with_score(session: AsyncSession, address: str) -> list[Place | float]:
+    statement = (
+        select(Place, func.avg(UserPlace.score))
+        .outerjoin(UserPlace, Place.address == UserPlace.fk_place_address)
+        .where(Place.address == address)
+        .group_by(Place.address)
+    )
+    result = await session.execute(statement)
+    instance_with_score = list(result.one().tuple())
+    return instance_with_score
 
 
 async def async_main() -> None:
