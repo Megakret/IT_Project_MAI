@@ -13,15 +13,15 @@ from tg_bot.tg_exceptions import NoTextMessageException
 PLACE_KEY = "place"
 KEYBOARD_PREFIX = "suggest_place"
 
-class SelectorStates(StatesGroup):
-    choose_suggestion = State()
-
 
 class NoPlacesFoundException(Exception):
     pass
 
 
 class GeosuggestSelector:
+    def __init__(self, selector_state: State):
+        self._selector_state = selector_state
+
     async def show_suggestions(self, message: Message, state: FSMContext):
         try:
             place_name: str = message.text
@@ -39,7 +39,7 @@ class GeosuggestSelector:
                 )
                 senders.append(asyncio.create_task(message_sender_wrap(message_obj)))
             await asyncio.wait(senders)
-            await state.set_state(SelectorStates.choose_suggestion)
+            await state.set_state(self._selector_state)
         except NoTextMessageException:
             await message.answer("Введите название места текстом")
         except NoPlacesFoundException:

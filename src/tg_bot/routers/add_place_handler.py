@@ -12,9 +12,13 @@ from api.geosuggest.geosuggest import Geosuggest, GeosuggestResult
 from api.geosuggest.place import Place
 from tg_bot.keyboards import suggest_place_kbs, starter_kb
 from tg_bot.aiogram_coros import message_sender_wrap, custom_clear
+from tg_bot.ui_components.GeosuggestSelector import (
+    GeosuggestSelector,
+    PLACE_KEY,
+    KEYBOARD_PREFIX,
+)
 import database.db_functions as db
 from database.db_exceptions import UniqueConstraintError
-
 
 
 class ScoreOutOfRange(Exception):
@@ -30,9 +34,13 @@ class NewPlaceFSM(StatesGroup):
 
 router = Router()
 
+geosuggest_selector = GeosuggestSelector(NewPlaceFSM.choose_place)
+
 
 @router.message(CommandStart())
-async def handle_cmd_start(message: Message, state: FSMContext, session: AsyncSession) -> None:
+async def handle_cmd_start(
+    message: Message, state: FSMContext, session: AsyncSession
+) -> None:
     await message.answer(
         "Привет. Напиши /add_place, чтобы добавить место для досуга",
         reply_markup=starter_kb,
@@ -58,33 +66,14 @@ async def geosuggest_test(message: Message, state: FSMContext) -> None:
 
 @router.message(NewPlaceFSM.enter_place)
 async def check_place(message: Message, state: FSMContext):
-    responce: GeosuggestResult = await Geosuggest.request(message.text)
-    if len(responce) == 0:
-        await message.answer(
-            "Упс, кажется мы не нашли такого места. Попробуйте ввести его иначе."
-        )
-        return None
-    senders: list[asyncio.Task] = []
-    await message.answer("Какое из следующих мест вы имели в виду?")
-    await state.update_data(places=responce, name=message.text)
-    for i, place in enumerate(responce.get_messages()):
-        message_obj: SendMessage = message.answer(
-            place, reply_markup=suggest_place_kbs[i]
-        )
-        senders.append(asyncio.create_task(message_sender_wrap(message_obj)))
-    await asyncio.wait(senders)
-    await state.set_state(NewPlaceFSM.choose_place)
+    await geosuggest_selector.show_suggestions(message, state)
 
 
-@router.callback_query(F.data.contains("suggest_place"), NewPlaceFSM.choose_place)
+@router.callback_query(
+    F.data.contains(KEYBOARD_PREFIX), NewPlaceFSM.choose_place
+)
 async def choose_suggested_place(callback: CallbackQuery, state: FSMContext):
-    callback_data: str = callback.data
-    place_id = int(callback_data[-1])
-    data = await state.get_data()
-    responce: GeosuggestResult = data["places"]
-    chosen_place: Place = responce[place_id]
-    await state.update_data(place=chosen_place)
-    await callback.answer(f"Вы выбрали {chosen_place.get_name()}")
+    await geosuggest_selector.selected_place(callback, state)
     await callback.message.answer("Введите свое описание места")
     await state.set_state(NewPlaceFSM.enter_description)
 
@@ -97,16 +86,22 @@ async def enter_description(message: Message, state: FSMContext):
     await state.set_state(NewPlaceFSM.enter_score)
 
 
-async def answer_form_result(message: Message, state: FSMContext, session: AsyncSession):
+async def answer_form_result(
+    message: Message, state: FSMContext, session: AsyncSession
+):
     data = await state.get_data()
     place: Place = data["place"]
     try:
-        await db.add_place(session, place.get_name(), place.get_info(), data["description"])
+        await db.add_place(
+            session, place.get_name(), place.get_info(), data["description"]
+        )
     except UniqueConstraintError as e:
         print("Already existing place has been tried to add to global list")
         print(e.message)
     try:
-        await db.add_user_place(session, message.from_user.id, place.get_info(), data["score"])
+        await db.add_user_place(
+            session, message.from_user.id, place.get_info(), data["score"]
+        )
         answer: str = "\n".join(
             (
                 f"Данные о месте: {place.get_name()}\n{place.get_info()}",
