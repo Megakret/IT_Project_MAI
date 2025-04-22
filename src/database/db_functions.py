@@ -60,6 +60,7 @@ class UserPlace(Base):
     fk_user_id: Mapped[int] = mapped_column(ForeignKey(User.id))
     fk_place_address: Mapped[str] = mapped_column(ForeignKey(Place.address))
     score: Mapped[int | None] = mapped_column(CheckConstraint("score BETWEEN 1 and 10"))
+    commentary: Mapped[str | None]
 
     UniqueConstraint(fk_user_id, fk_place_address)
 
@@ -174,11 +175,49 @@ async def rate(
         await session.commit()
 
 
+async def comment(
+    session: AsyncSession,
+    user_id: int,
+    address: str,
+    commentary: str,
+) -> None:
+    try:
+        statement = (
+            update(UserPlace)
+            .where(
+                UserPlace.fk_user_id == user_id,
+                UserPlace.fk_place_address == address,
+            )
+            .values(commentary=commentary)
+        )
+        await session.execute(statement)
+        await session.flush()
+    except IntegrityError as error:
+        await session.rollback()
+        if isinstance(error.orig, sqlite3.IntegrityError):
+            if error.orig.sqlite_errorcode == 2067:
+                raise UniqueConstraintError(
+                    ["user_id", "address"], [str(user_id), address]
+                )
+            else:
+                raise ConstraintError(
+                    ["user_id", "address"], [str(user_id), address]
+                )
+        else:
+            raise
+    except:
+        await session.rollback()
+        raise
+    else:
+        await session.commit()
+
+
 async def add_user_place(
     session: AsyncSession,
     user_id: int,
     address: str,
     score: int | None = None,
+    commentary: str | None = None,
 ) -> None:
     try:
         session.add(
@@ -187,6 +226,9 @@ async def add_user_place(
         await session.flush()
         if (score):
             await rate(session, user_id, address, score)
+        await session.flush()
+        if (commentary):
+            await comment(session, user_id, address, commentary)
         await session.flush()
     except IntegrityError as error:
         await session.rollback()
