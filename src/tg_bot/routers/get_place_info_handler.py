@@ -23,6 +23,7 @@ from tg_bot.keyboards import (
     PREV_PAGE,
     INDICATOR_CLICKED,
     SUMMARIZE_COMMENTS_TAG,
+    LEAVE_COMMENT_TAG
 )
 from tg_bot.test_utils.comments.comments_mock import (
     comments_mock
@@ -36,9 +37,14 @@ class NoPlaceException(Exception):
     pass
 
 
+class NoTextException(Exception):
+    pass
+
+
 class GetPlaceStates(StatesGroup):
     enter_place = State()
     choose_place = State()
+    enter_comment = State()
 
 
 async def get_comments_for_paginator(
@@ -160,3 +166,23 @@ async def summarize_comments(callback: CallbackQuery, state: FSMContext):
         await callback.message.answer(summarization)
     except NoPlaceException:
         await callback.answer("Попробуйте ввести место еще раз")
+    
+@router.callback_query(F.data == LEAVE_COMMENT_TAG)
+async def pressed_leave_comment_button(callback: CallbackQuery, state: FSMContext):
+    await callback.message.answer("Напишите комментарий текстом")
+    await state.set_state(GetPlaceStates.enter_comment)
+
+
+@router.message(GetPlaceStates.enter_comment)
+async def enter_comment(message: Message, state: FSMContext):
+    try:
+        comment = message.text
+        if comment == "":
+            raise NoTextException
+        data = await state.get_data()
+        place: Place = data.get(PLACE_KEY)
+        comments_mock.add_comment(place.get_info(), comment)
+        await message.answer("Ваш комментарий успешно добавлен")
+        await state.set_state(GetPlaceStates.choose_place)
+    except NoTextException:
+        await message.answer("Мы принимает только текстовые комментарии")
