@@ -25,8 +25,7 @@ from tg_bot.keyboards import (
     SUMMARIZE_COMMENTS_TAG,
 )
 from tg_bot.test_utils.comments.comments_mock import (
-    get_comments_by_page,
-    get_all_comments,
+    comments_mock
 )
 
 router = Router()
@@ -45,7 +44,7 @@ class GetPlaceStates(StatesGroup):
 async def get_comments_for_paginator(
     page: int, places_per_page: int, address: str
 ) -> list[str]:
-    return get_comments_by_page(page, places_per_page, address)
+    return comments_mock.get_comments_by_page(page, places_per_page, address)
 
 
 geosuggest_selector = GeosuggestSelector(GetPlaceStates.choose_place)
@@ -156,7 +155,7 @@ async def summarize_comments(callback: CallbackQuery, state: FSMContext):
             raise NoPlaceException
         await callback.answer("Ожидайте...")
         summarizer = GptSummarize()
-        comments = get_all_comments(place.get_info())
+        comments = comments_mock.get_all_comments(place.get_info())
         summarization: str = await summarizer.summarize_NAC(comments)
         await callback.message.answer(summarization)
     except NoPlaceException:

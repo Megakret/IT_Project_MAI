@@ -8,8 +8,8 @@ from aiogram.types import ReplyKeyboardRemove
 from aiogram import F
 import asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
-from api.geosuggest.geosuggest import Geosuggest, GeosuggestResult
 from api.geosuggest.place import Place
+from tg_bot.test_utils.comments.comments_mock import comments_mock
 from tg_bot.keyboards import suggest_place_kbs, starter_kb
 from tg_bot.aiogram_coros import message_sender_wrap, custom_clear
 from tg_bot.ui_components.GeosuggestSelector import (
@@ -25,11 +25,16 @@ class ScoreOutOfRange(Exception):
     pass
 
 
+class NoTextException(Exception):
+    pass
+
+
 class NewPlaceFSM(StatesGroup):
     enter_place = State()
     choose_place = State()
     enter_description = State()
     enter_score = State()
+    enter_comment = State()
 
 
 router = Router()
@@ -121,11 +126,26 @@ async def enter_score(message: Message, state: FSMContext, session: AsyncSession
         if not (1 <= score <= 10):
             raise ScoreOutOfRange()
         await state.update_data(score=score)
-        await answer_form_result(message, state, session)
+        await message.answer("Оставьте комментарий о месте")
+        await state.set_state(NewPlaceFSM.enter_comment)
     except ValueError:
         await message.answer("Введите число!")
     except ScoreOutOfRange:
         await message.answer("Введите число от 1 до 10")
+
+
+@router.message(NewPlaceFSM.enter_comment)
+async def enter_comment(message: Message, state: FSMContext, session: AsyncSession):
+    try:
+        comment: str = message.text
+        data = await state.get_data()
+        place: Place = data.get("place")
+        if comment == "":
+            raise NoTextException
+        comments_mock.add_comment(place.get_info(), comment)
+        await answer_form_result(message, state, session)
+    except NoTextException:
+        await message.answer("Наши комментарии поддерживают только текст")
 
 
 @router.message(Command("fun"))
