@@ -10,20 +10,34 @@ from tg_bot.ui_components.GeosuggestSelector import (
     KEYBOARD_PREFIX,
     PLACE_KEY,
 )
+from tg_bot.ui_components.Paginator import PaginatorService
 from api.geosuggest.geosuggest import Geosuggest, GeosuggestResult
 from api.geosuggest.place import Place
 from database.db_functions import get_place_with_score
 from database.db_functions import Place as db_Place
+from tg_bot.keyboards import (
+    show_comments_keyboard,
+    GET_COMMENTS_TAG,
+    NEXT_PAGE,
+    PREV_PAGE,
+    INDICATOR_CLICKED,
+)
+from tg_bot.test_utils.comments.comments_mock import get_comments
 
 router = Router()
-
+POSTFIX = "comments"
+class NoPlaceException(Exception):
+    pass
 
 class GetPlaceStates(StatesGroup):
     enter_place = State()
     choose_place = State()
 
+async def get_comments_for_paginator(page: int, places_per_page: int, address: str) -> list[str]:
+    return get_comments(page, places_per_page, address)
 
 geosuggest_selector = GeosuggestSelector(GetPlaceStates.choose_place)
+paginator_service = PaginatorService(POSTFIX, 5, get_comments_for_paginator)
 
 
 class NoPlaceInDbException(Exception):
@@ -57,14 +71,64 @@ async def find_place_handler(
         score: int = db_res[1]
         if score is None:
             await callback.message.answer(
-                f"{db_place.name}\n{db_place.address}\n{db_place.desc}\nВы пока не оценили это место"
+                f"{db_place.name}\n{db_place.address}\n{db_place.desc}\nВы пока не оценили это место",
+                reply_markup=show_comments_keyboard,
             )
         else:
             await callback.message.answer(
-                f"{db_place.name}\n{db_place.address}\n{db_place.desc}\nВаша оценка месту: {score}"
+                f"{db_place.name}\n{db_place.address}\n{db_place.desc}\nВаша оценка месту: {score}",
+                reply_markup=show_comments_keyboard,
             )
     except NoPlaceInDbException:
         await callback.message.answer(
             "Этого места еще нет в базе, но вы можете его добавить с помощью команды /add_place"
         )
-    await state.clear()
+
+
+@router.callback_query(F.data == GET_COMMENTS_TAG)
+async def show_comments(callback: CallbackQuery, state: FSMContext):
+    try:
+        data: dict[str, any] = await state.get_data()
+        place: Place = data.get(PLACE_KEY)
+        if place is None:
+            raise NoPlaceException
+        paginator_message: Message = await callback.message.answer("Загрузка...")
+        await paginator_service.start_paginator(paginator_message, state, place.get_info())
+    except NoPlaceException:
+        await callback.answer("Попробуйте ввести место еще раз")
+
+
+@router.callback_query(F.data == NEXT_PAGE + POSTFIX)
+async def next_page(callback: CallbackQuery, state: FSMContext):
+    try:
+        data: dict[str, any] = await state.get_data()
+        place: Place = data.get(PLACE_KEY)
+        if place is None:
+            raise NoPlaceException
+        await paginator_service.show_next_page(callback, state, place.get_info())
+    except NoPlaceException:
+        await callback.answer("Попробуйте ввести место еще раз")
+
+
+@router.callback_query(F.data == PREV_PAGE + POSTFIX)
+async def next_page(callback: CallbackQuery, state: FSMContext):
+    try:
+        data: dict[str, any] = await state.get_data()
+        place: Place = data.get(PLACE_KEY)
+        if place is None:
+            raise NoPlaceException
+        await paginator_service.show_prev_page(callback, state, place.get_info())
+    except NoPlaceException:
+        await callback.answer("Попробуйте ввести место еще раз")
+
+
+@router.callback_query(F.data == INDICATOR_CLICKED + POSTFIX)
+async def indicator_clicked(callback: CallbackQuery, state: FSMContext):
+    try:
+        data: dict[str, any] = await state.get_data()
+        place: Place = data.get(PLACE_KEY)
+        if place is None:
+            raise NoPlaceException
+        await paginator_service.indicator_clicked(callback, state, place.get_info())
+    except NoPlaceException:
+        await callback.answer("Попробуйте ввести место еще раз")

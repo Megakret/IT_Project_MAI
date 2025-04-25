@@ -10,6 +10,7 @@ SUGGEST_AMOUNT: int = 5
 NEXT_PAGE = "next_page_"
 PREV_PAGE = "prev_page_"
 INDICATOR_CLICKED = "page_indicator_"
+GET_COMMENTS_TAG = "get_comments"
 suggest_place_kbs: list[InlineKeyboardMarkup] = []
 for i in range(SUGGEST_AMOUNT):
     suggest_place_kbs.append(
@@ -33,6 +34,9 @@ starter_kb = ReplyKeyboardMarkup(
     resize_keyboard=True,
 )
 
+show_comments_keyboard = InlineKeyboardMarkup(
+    inline_keyboard=[[InlineKeyboardButton(text="Показать комментарии", callback_data=GET_COMMENTS_TAG)]]
+)
 
 def generate_page_kb(page: int, postfix: str) -> InlineKeyboardMarkup:
     page_select_kb = InlineKeyboardMarkup(

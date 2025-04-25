@@ -88,7 +88,6 @@ class PaginatorService:
     ) -> None:
         paginator = Paginator(self._items_per_page, self._get_data_by_page, self)
         await paginator.setup(message, *args, **kwargs)
-        await utils.custom_clear(state)
         await state.update_data({("paginator" + self._postfix): paginator})
 
     async def _prepare_paginator(
