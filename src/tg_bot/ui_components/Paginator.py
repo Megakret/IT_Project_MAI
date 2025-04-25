@@ -85,7 +85,9 @@ class PaginatorService:
 
     async def start_paginator(
         self, message: Message, state: FSMContext, *args, **kwargs
-    ) -> None:
+    ) -> (
+        None
+    ):  # paginator service automatically creates message with paginator and generates the first page with given parameters
         paginator = Paginator(self._items_per_page, self._get_data_by_page, self)
         await paginator.setup(message, *args, **kwargs)
         await state.update_data({("paginator" + self._postfix): paginator})
@@ -129,7 +131,7 @@ class PaginatorService:
         )
         await paginator.show_prev_page(callback, *args, **kwargs)
 
-    def __init__(
+    def __init__(  # declare it as a global variable
         self,
         postfix: str,
         items_per_page: int,

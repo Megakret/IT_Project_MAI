@@ -13,6 +13,7 @@ from tg_bot.ui_components.GeosuggestSelector import (
 from tg_bot.ui_components.Paginator import PaginatorService
 from api.geosuggest.geosuggest import Geosuggest, GeosuggestResult
 from api.geosuggest.place import Place
+from api.gpt.GptSummarize import GptSummarize
 from database.db_functions import get_place_with_score
 from database.db_functions import Place as db_Place
 from tg_bot.keyboards import (
@@ -21,20 +22,31 @@ from tg_bot.keyboards import (
     NEXT_PAGE,
     PREV_PAGE,
     INDICATOR_CLICKED,
+    SUMMARIZE_COMMENTS_TAG,
 )
-from tg_bot.test_utils.comments.comments_mock import get_comments
+from tg_bot.test_utils.comments.comments_mock import (
+    get_comments_by_page,
+    get_all_comments,
+)
 
 router = Router()
 POSTFIX = "comments"
+
+
 class NoPlaceException(Exception):
     pass
+
 
 class GetPlaceStates(StatesGroup):
     enter_place = State()
     choose_place = State()
 
-async def get_comments_for_paginator(page: int, places_per_page: int, address: str) -> list[str]:
-    return get_comments(page, places_per_page, address)
+
+async def get_comments_for_paginator(
+    page: int, places_per_page: int, address: str
+) -> list[str]:
+    return get_comments_by_page(page, places_per_page, address)
+
 
 geosuggest_selector = GeosuggestSelector(GetPlaceStates.choose_place)
 paginator_service = PaginatorService(POSTFIX, 5, get_comments_for_paginator)
@@ -92,8 +104,9 @@ async def show_comments(callback: CallbackQuery, state: FSMContext):
         place: Place = data.get(PLACE_KEY)
         if place is None:
             raise NoPlaceException
-        paginator_message: Message = await callback.message.answer("Загрузка...")
-        await paginator_service.start_paginator(paginator_message, state, place.get_info())
+        await paginator_service.start_paginator(
+            callback.message, state, place.get_info()
+        )
     except NoPlaceException:
         await callback.answer("Попробуйте ввести место еще раз")
 
@@ -130,5 +143,21 @@ async def indicator_clicked(callback: CallbackQuery, state: FSMContext):
         if place is None:
             raise NoPlaceException
         await paginator_service.indicator_clicked(callback, state, place.get_info())
+    except NoPlaceException:
+        await callback.answer("Попробуйте ввести место еще раз")
+
+
+@router.callback_query(F.data == SUMMARIZE_COMMENTS_TAG)
+async def summarize_comments(callback: CallbackQuery, state: FSMContext):
+    try:
+        data: dict[str, any] = await state.get_data()
+        place: Place = data.get(PLACE_KEY)
+        if place is None:
+            raise NoPlaceException
+        await callback.answer("Ожидайте...")
+        summarizer = GptSummarize()
+        comments = get_all_comments(place.get_info())
+        summarization: str = await summarizer.summarize_NAC(comments)
+        await callback.message.answer(summarization)
     except NoPlaceException:
         await callback.answer("Попробуйте ввести место еще раз")
