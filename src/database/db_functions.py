@@ -287,7 +287,7 @@ async def get_place_comments(
     return comments_list
 
 
-async def get_all_comments(
+async def get_place_comments_all(
     session: AsyncSession,
     address: str
 ) -> list[str | None] | None:
