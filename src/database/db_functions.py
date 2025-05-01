@@ -196,6 +196,22 @@ async def get_place_tags(
     return tags_list
 
 
+async def get_places_with_tag(
+    session: AsyncSession,
+    tag: str
+) -> list[Place]:
+    statement = (
+        select(Place)
+        .where(
+            Tag.place_tag == tag,
+            Place.address == Tag.fk_place_address
+        )
+    )
+    result = await session.execute(statement)
+    instance_list = list(result.scalars().all())
+    return instance_list
+
+
 async def rate(
     session: AsyncSession,
     user_id: int,
