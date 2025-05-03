@@ -52,7 +52,7 @@ show_comments_keyboard = InlineKeyboardMarkup(
             InlineKeyboardButton(
                 text="Оставить комментарий", callback_data=LEAVE_COMMENT_TAG
             )
-        ]
+        ],
     ]
 )
 

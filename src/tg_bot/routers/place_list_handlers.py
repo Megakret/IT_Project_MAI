@@ -22,7 +22,9 @@ async def get_formatted_list(
     return place_formatted_list
 
 
-paginator_service = PaginatorService(POSTFIX, PLACES_PER_PAGE, get_formatted_list, "В базе пока нет ни одного места")
+paginator_service = PaginatorService(
+    POSTFIX, PLACES_PER_PAGE, get_formatted_list, "В базе пока нет ни одного места"
+)
 
 
 @router.message(Command("place_list"))

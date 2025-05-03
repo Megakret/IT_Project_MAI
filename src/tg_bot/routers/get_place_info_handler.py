@@ -56,7 +56,9 @@ async def get_comments_for_paginator(
 
 
 geosuggest_selector = GeosuggestSelector(GetPlaceStates.choose_place)
-paginator_service = PaginatorService(POSTFIX, 5, get_comments_for_paginator, "Пока что для этого места нет комментариев")
+paginator_service = PaginatorService(
+    POSTFIX, 5, get_comments_for_paginator, "Пока что для этого места нет комментариев"
+)
 
 
 class NoPlaceInDbException(Exception):
@@ -207,7 +209,7 @@ async def enter_comment(message: Message, state: FSMContext, session: AsyncSessi
             raise NoTextException
         data = await state.get_data()
         place: Place = data.get(PLACE_KEY)
-        if(place is None):
+        if place is None:
             raise NoPlaceException
         await db.add_comment(session, message.from_user.id, place.get_info(), comment)
         await message.answer("Ваш комментарий успешно добавлен")
