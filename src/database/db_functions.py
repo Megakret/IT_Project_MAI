@@ -17,9 +17,9 @@ from database.db_exceptions import UniqueConstraintError, ConstraintError
 engine: AsyncEngine
 async_session_maker: async_sessionmaker
 
-
 def init_database() -> async_sessionmaker:
-    engine = create_async_engine("sqlite+aiosqlite:///src/database/database.db")
+    global engine
+    engine = create_async_engine("sqlite+aiosqlite:///src/database/database.db", echo=True)
     async_session_maker = async_sessionmaker(engine, expire_on_commit=False)
     return async_session_maker
 
@@ -299,8 +299,8 @@ async def get_place_comments(
         .offset((page - 1) * comments_per_page)
     )
     result = await session.execute(statement)
-    comments_list = list(result.scalars().all()) if result.scalar_one_or_none() else None
-    return comments_list
+    # comments_list = list(result.scalars().all()) if result.scalar_one_or_none() else None
+    return list(result.scalars().all())
 
 
 async def get_place_comments_all(
@@ -312,8 +312,8 @@ async def get_place_comments_all(
         .where(UserPlace.fk_place_address == address, UserPlace.comment.is_not(None))
     )
     result = await session.execute(statement)
-    comments_list = list(result.scalars().all()) if result.scalar_one_or_none() else None
-    return comments_list
+    # comments_list = list(result.scalars().all()) if result.scalar_one_or_none() else None
+    return list(result.scalars().all())
 
 
 async def add_user_place(
@@ -385,6 +385,8 @@ async def get_place_with_score(session: AsyncSession, address: str) -> tuple[Pla
 
 
 async def async_main() -> None:
+    init_database()
+    print(engine.url)
     async with engine.begin() as connection:
         await connection.run_sync(Base.metadata.create_all)
 

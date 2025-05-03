@@ -10,6 +10,9 @@ SUGGEST_AMOUNT: int = 5
 NEXT_PAGE = "next_page_"
 PREV_PAGE = "prev_page_"
 INDICATOR_CLICKED = "page_indicator_"
+GET_COMMENTS_TAG = "get_comments"
+SUMMARIZE_COMMENTS_TAG = "summarize_comments"
+LEAVE_COMMENT_TAG = "leave_comment"
 suggest_place_kbs: list[InlineKeyboardMarkup] = []
 for i in range(SUGGEST_AMOUNT):
     suggest_place_kbs.append(
@@ -31,6 +34,26 @@ starter_kb = ReplyKeyboardMarkup(
         [KeyboardButton(text="/get_place")],
     ],
     resize_keyboard=True,
+)
+
+show_comments_keyboard = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [
+            InlineKeyboardButton(
+                text="Показать комментарии", callback_data=GET_COMMENTS_TAG
+            )
+        ],
+        [
+            InlineKeyboardButton(
+                text="Суммаризовать комментарии", callback_data=SUMMARIZE_COMMENTS_TAG
+            )
+        ],
+        [
+            InlineKeyboardButton(
+                text="Оставить комментарий", callback_data=LEAVE_COMMENT_TAG
+            )
+        ],
+    ]
 )
 
 

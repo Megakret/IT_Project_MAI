@@ -53,7 +53,7 @@ class Paginator:
             self._message = await message.answer("Загрузка...")
             await self._update(self._current_page, *args, **kwargs)
         except NoMorePages as e:
-            await message.answer("")
+            await self._message.edit_text(self._paginator_service.no_pages_message)
 
     async def show_next_page(self, callback: CallbackQuery, *args, **kwargs):
         try:
@@ -85,10 +85,11 @@ class PaginatorService:
 
     async def start_paginator(
         self, message: Message, state: FSMContext, *args, **kwargs
-    ) -> None:
+    ) -> (
+        None
+    ):  # paginator service automatically creates message with paginator and generates the first page with given parameters
         paginator = Paginator(self._items_per_page, self._get_data_by_page, self)
         await paginator.setup(message, *args, **kwargs)
-        await utils.custom_clear(state)
         await state.update_data({("paginator" + self._postfix): paginator})
 
     async def _prepare_paginator(
@@ -130,15 +131,21 @@ class PaginatorService:
         )
         await paginator.show_prev_page(callback, *args, **kwargs)
 
-    def __init__(
+    @property
+    def no_pages_message(self):
+        return self._no_pages_message
+
+    def __init__(  # declare it as a global variable
         self,
         postfix: str,
         items_per_page: int,
         get_data_by_page: Callable[[int, int], Awaitable[list[str]]],
+        no_pages_message: str,
     ):
         self._postfix = postfix
         self._items_per_page = items_per_page
         self._get_data_by_page = get_data_by_page
+        self._no_pages_message = no_pages_message
         # router.message.register(self.start_paginator, Command(appear_command))
         # router.callback_query.register(
         #     self.show_next_page, F.data == f"next_page_{postfix}"

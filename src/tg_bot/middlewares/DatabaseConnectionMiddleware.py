@@ -16,4 +16,5 @@ class DatabaseConnectionMiddleware(BaseMiddleware):
     ) -> Any:
         async with self._session_maker() as session:
             data["session"] = session
+            print(session)
             return await handler(event, data)

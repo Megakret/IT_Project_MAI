@@ -28,7 +28,9 @@ async def get_formatted_list(
     return place_formatted_list
 
 
-paginator_service = PaginatorService(POSTFIX, PLACES_PER_PAGE, get_formatted_list)
+paginator_service = PaginatorService(
+    POSTFIX, PLACES_PER_PAGE, get_formatted_list, "Вы не посещали никаких мест"
+)
 
 
 @router.message(Command("user_place_list"))
