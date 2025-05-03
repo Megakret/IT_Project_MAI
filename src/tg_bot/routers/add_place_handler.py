@@ -9,7 +9,6 @@ from aiogram import F
 import asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
 from api.geosuggest.place import Place
-from tg_bot.test_utils.comments.comments_mock import comments_mock
 from tg_bot.keyboards import suggest_place_kbs, starter_kb
 from tg_bot.aiogram_coros import message_sender_wrap, custom_clear
 from tg_bot.ui_components.GeosuggestSelector import (
@@ -18,6 +17,7 @@ from tg_bot.ui_components.GeosuggestSelector import (
     KEYBOARD_PREFIX,
 )
 import database.db_functions as db
+
 from database.db_exceptions import UniqueConstraintError
 
 
@@ -90,7 +90,7 @@ async def enter_description(message: Message, state: FSMContext):
 
 
 async def answer_form_result(
-    message: Message, state: FSMContext, session: AsyncSession
+    message: Message, state: FSMContext, session: AsyncSession, comment: str
 ):
     data = await state.get_data()
     place: Place = data["place"]
@@ -105,6 +105,7 @@ async def answer_form_result(
         await db.add_user_place(
             session, message.from_user.id, place.get_info(), data["score"]
         )
+        await db.add_comment(session, message.from_user.id, place.get_info(), comment)
         answer: str = "\n".join(
             (
                 f"Данные о месте: {place.get_name()}\n{place.get_info()}",
@@ -120,7 +121,7 @@ async def answer_form_result(
 
 
 @router.message(NewPlaceFSM.enter_score)
-async def enter_score(message: Message, state: FSMContext, session: AsyncSession):
+async def enter_score(message: Message, state: FSMContext):
     try:
         score: int = int(message.text)
         if not (1 <= score <= 10):
@@ -139,11 +140,9 @@ async def enter_comment(message: Message, state: FSMContext, session: AsyncSessi
     try:
         comment: str = message.text
         data = await state.get_data()
-        place: Place = data.get("place")
         if comment == "":
             raise NoTextException
-        comments_mock.add_comment(place.get_info(), comment)
-        await answer_form_result(message, state, session)
+        await answer_form_result(message, state, session, comment)
     except NoTextException:
         await message.answer("Наши комментарии поддерживают только текст")
 

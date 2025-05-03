@@ -11,11 +11,10 @@ from tg_bot.ui_components.GeosuggestSelector import (
     PLACE_KEY,
 )
 from tg_bot.ui_components.Paginator import PaginatorService
-from api.geosuggest.geosuggest import Geosuggest, GeosuggestResult
 from api.geosuggest.place import Place
 from api.gpt.GptSummarize import GptSummarize
-from database.db_functions import get_place_with_score
-from database.db_functions import Place as db_Place
+import database.db_functions as db
+from database.db_exceptions import UniqueConstraintError
 from tg_bot.keyboards import (
     show_comments_keyboard,
     GET_COMMENTS_TAG,
@@ -23,11 +22,9 @@ from tg_bot.keyboards import (
     PREV_PAGE,
     INDICATOR_CLICKED,
     SUMMARIZE_COMMENTS_TAG,
-    LEAVE_COMMENT_TAG
+    LEAVE_COMMENT_TAG,
 )
-from tg_bot.test_utils.comments.comments_mock import (
-    comments_mock
-)
+
 
 router = Router()
 POSTFIX = "comments"
@@ -41,6 +38,10 @@ class NoTextException(Exception):
     pass
 
 
+class NoComments(Exception):
+    pass
+
+
 class GetPlaceStates(StatesGroup):
     enter_place = State()
     choose_place = State()
@@ -48,13 +49,16 @@ class GetPlaceStates(StatesGroup):
 
 
 async def get_comments_for_paginator(
-    page: int, places_per_page: int, address: str
+    page: int, places_per_page: int, address: str, session: AsyncSession
 ) -> list[str]:
-    return comments_mock.get_comments_by_page(page, places_per_page, address)
+    comments = await db.get_place_comments(session, page, places_per_page, address)
+    if comments is None:
+        comments = []
+    return comments
 
 
 geosuggest_selector = GeosuggestSelector(GetPlaceStates.choose_place)
-paginator_service = PaginatorService(POSTFIX, 5, get_comments_for_paginator)
+paginator_service = PaginatorService(POSTFIX, 5, get_comments_for_paginator, "Пока что для этого места нет комментариев")
 
 
 class NoPlaceInDbException(Exception):
@@ -81,10 +85,10 @@ async def find_place_handler(
     data = await state.get_data()
     place: Place = data.get(PLACE_KEY)
     try:
-        db_res = await get_place_with_score(session, place.get_info())
+        db_res = await db.get_place_with_score(session, place.get_info())
         if db_res is None:
             raise NoPlaceInDbException()
-        db_place: db_Place = db_res[0]
+        db_place: db.Place = db_res[0]
         score: int = db_res[1]
         if score is None:
             await callback.message.answer(
@@ -103,57 +107,69 @@ async def find_place_handler(
 
 
 @router.callback_query(F.data == GET_COMMENTS_TAG)
-async def show_comments(callback: CallbackQuery, state: FSMContext):
+async def show_comments(
+    callback: CallbackQuery, state: FSMContext, session: AsyncSession
+):
     try:
         data: dict[str, any] = await state.get_data()
         place: Place = data.get(PLACE_KEY)
         if place is None:
             raise NoPlaceException
         await paginator_service.start_paginator(
-            callback.message, state, place.get_info()
+            callback.message, state, place.get_info(), session
         )
     except NoPlaceException:
         await callback.answer("Попробуйте ввести место еще раз")
 
 
 @router.callback_query(F.data == NEXT_PAGE + POSTFIX)
-async def next_page(callback: CallbackQuery, state: FSMContext):
+async def next_page(callback: CallbackQuery, state: FSMContext, session: AsyncSession):
     try:
         data: dict[str, any] = await state.get_data()
         place: Place = data.get(PLACE_KEY)
         if place is None:
             raise NoPlaceException
-        await paginator_service.show_next_page(callback, state, place.get_info())
+        await paginator_service.show_next_page(
+            callback, state, place.get_info(), session
+        )
     except NoPlaceException:
         await callback.answer("Попробуйте ввести место еще раз")
 
 
 @router.callback_query(F.data == PREV_PAGE + POSTFIX)
-async def next_page(callback: CallbackQuery, state: FSMContext):
+async def next_page(callback: CallbackQuery, state: FSMContext, session: AsyncSession):
     try:
         data: dict[str, any] = await state.get_data()
         place: Place = data.get(PLACE_KEY)
         if place is None:
             raise NoPlaceException
-        await paginator_service.show_prev_page(callback, state, place.get_info())
+        await paginator_service.show_prev_page(
+            callback, state, place.get_info(), session
+        )
     except NoPlaceException:
         await callback.answer("Попробуйте ввести место еще раз")
 
 
 @router.callback_query(F.data == INDICATOR_CLICKED + POSTFIX)
-async def indicator_clicked(callback: CallbackQuery, state: FSMContext):
+async def indicator_clicked(
+    callback: CallbackQuery, state: FSMContext, session: AsyncSession
+):
     try:
         data: dict[str, any] = await state.get_data()
         place: Place = data.get(PLACE_KEY)
         if place is None:
             raise NoPlaceException
-        await paginator_service.indicator_clicked(callback, state, place.get_info())
+        await paginator_service.indicator_clicked(
+            callback, state, place.get_info(), session
+        )
     except NoPlaceException:
         await callback.answer("Попробуйте ввести место еще раз")
 
 
 @router.callback_query(F.data == SUMMARIZE_COMMENTS_TAG)
-async def summarize_comments(callback: CallbackQuery, state: FSMContext):
+async def summarize_comments(
+    callback: CallbackQuery, state: FSMContext, session: AsyncSession
+):
     try:
         data: dict[str, any] = await state.get_data()
         place: Place = data.get(PLACE_KEY)
@@ -161,28 +177,44 @@ async def summarize_comments(callback: CallbackQuery, state: FSMContext):
             raise NoPlaceException
         await callback.answer("Ожидайте...")
         summarizer = GptSummarize()
-        comments = comments_mock.get_all_comments(place.get_info())
+        comments = await db.get_place_comments_all(session, place.get_info())
+        if comments is None:
+            raise NoComments
         summarization: str = await summarizer.summarize_NAC(comments)
         await callback.message.answer(summarization)
     except NoPlaceException:
         await callback.answer("Попробуйте ввести место еще раз")
-    
+    except NoComments:
+        await callback.message.answer("Пока что для этого места нет комментариев")
+
+
 @router.callback_query(F.data == LEAVE_COMMENT_TAG)
 async def pressed_leave_comment_button(callback: CallbackQuery, state: FSMContext):
-    await callback.message.answer("Напишите комментарий текстом")
-    await state.set_state(GetPlaceStates.enter_comment)
+    try:
+        data = await state.get_data()
+        place: Place = data.get(PLACE_KEY)
+        if place is None:
+            raise NoPlaceException
+        await callback.message.answer("Напишите комментарий текстом")
+        await state.set_state(GetPlaceStates.enter_comment)
+    except NoPlaceException:
+        await callback.answer("Попробуйте ввести место еще раз")
 
 
 @router.message(GetPlaceStates.enter_comment)
-async def enter_comment(message: Message, state: FSMContext):
+async def enter_comment(message: Message, state: FSMContext, session: AsyncSession):
     try:
         comment = message.text
         if comment == "":
             raise NoTextException
         data = await state.get_data()
         place: Place = data.get(PLACE_KEY)
-        comments_mock.add_comment(place.get_info(), comment)
+        if(place is None):
+            raise NoPlaceException
+        await db.add_comment(session, message.from_user.id, place.get_info(), comment)
         await message.answer("Ваш комментарий успешно добавлен")
         await state.set_state(GetPlaceStates.choose_place)
     except NoTextException:
         await message.answer("Мы принимает только текстовые комментарии")
+    except NoPlaceException:
+        await message.answer("Попробуйте ввести место еще раз")
