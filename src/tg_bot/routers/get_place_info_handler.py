@@ -11,6 +11,7 @@ from tg_bot.ui_components.GeosuggestSelector import (
     PLACE_KEY,
 )
 from tg_bot.ui_components.Paginator import PaginatorService
+from tg_bot.tg_exceptions import NoTextMessageException
 from api.geosuggest.place import Place
 from api.gpt.GptSummarize import GptSummarize
 import database.db_functions as db
@@ -31,10 +32,6 @@ POSTFIX = "comments"
 
 
 class NoPlaceException(Exception):
-    pass
-
-
-class NoTextException(Exception):
     pass
 
 
@@ -206,7 +203,7 @@ async def enter_comment(message: Message, state: FSMContext, session: AsyncSessi
     try:
         comment = message.text
         if comment == "":
-            raise NoTextException
+            raise NoTextMessageException
         data = await state.get_data()
         place: Place = data.get(PLACE_KEY)
         if place is None:
@@ -214,7 +211,7 @@ async def enter_comment(message: Message, state: FSMContext, session: AsyncSessi
         await db.add_comment(session, message.from_user.id, place.get_info(), comment)
         await message.answer("Ваш комментарий успешно добавлен")
         await state.set_state(GetPlaceStates.choose_place)
-    except NoTextException:
+    except NoTextMessageException:
         await message.answer("Мы принимает только текстовые комментарии")
     except NoPlaceException:
         await message.answer("Попробуйте ввести место еще раз")

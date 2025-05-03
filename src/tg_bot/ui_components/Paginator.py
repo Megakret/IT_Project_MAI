@@ -36,7 +36,7 @@ class Paginator:
         return self._message
 
     async def _update(self, page: int, *args, **kwargs):
-        items: list[str]  = await self._get_data_by_page(
+        items: list[str] = await self._get_data_by_page(
             page, self._items_per_page, *args, **kwargs
         )
         text: str = "\n-----------\n".join(items)
@@ -130,15 +130,17 @@ class PaginatorService:
             callback, state, *args, **kwargs
         )
         await paginator.show_prev_page(callback, *args, **kwargs)
+
     @property
     def no_pages_message(self):
         return self._no_pages_message
+
     def __init__(  # declare it as a global variable
         self,
         postfix: str,
         items_per_page: int,
         get_data_by_page: Callable[[int, int], Awaitable[list[str]]],
-        no_pages_message: str
+        no_pages_message: str,
     ):
         self._postfix = postfix
         self._items_per_page = items_per_page

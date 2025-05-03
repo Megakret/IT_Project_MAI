@@ -5,6 +5,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from api.gpt.GptTalker import GptTalker
 from tg_bot.aiogram_coros import custom_clear
+from tg_bot.tg_exceptions import NoTextMessageException
 from httpx import ReadTimeout
 
 router = Router()
@@ -12,10 +13,6 @@ router = Router()
 
 class GptTalkFSM(StatesGroup):
     talk_state = State()
-
-
-class NoTextException(Exception):
-    pass
 
 
 @router.message(Command("talk"))
@@ -42,7 +39,7 @@ async def send_message_to_gpt(message: Message, state: FSMContext):
         gpt_talker: GptTalker = data["gpt_talker"]
         message_text: str = message.text
         if len(message_text) == 0:
-            raise NoTextException()
+            raise NoTextMessageException()
         gpt_responce: str = await gpt_talker.talk_NAC(message_text)
         await message.answer(gpt_responce)
     except KeyError as e:
@@ -50,7 +47,7 @@ async def send_message_to_gpt(message: Message, state: FSMContext):
         await message.answer(
             "Ошибка: отсутствие контекста гпт. Попробуйте снова начать диалог через /talk"
         )
-    except NoTextException:
+    except NoTextMessageException:
         await message.answer("Вы должны отправить именно текст")
     except ReadTimeout as e:
         print(e)

@@ -16,17 +16,10 @@ from tg_bot.ui_components.GeosuggestSelector import (
     PLACE_KEY,
     KEYBOARD_PREFIX,
 )
+from tg_bot.tg_exceptions import NoTextMessageException, ScoreOutOfRange
 import database.db_functions as db
 
 from database.db_exceptions import UniqueConstraintError
-
-
-class ScoreOutOfRange(Exception):
-    pass
-
-
-class NoTextException(Exception):
-    pass
 
 
 class NewPlaceFSM(StatesGroup):
@@ -141,9 +134,9 @@ async def enter_comment(message: Message, state: FSMContext, session: AsyncSessi
         comment: str = message.text
         data = await state.get_data()
         if comment == "":
-            raise NoTextException
+            raise NoTextMessageException
         await answer_form_result(message, state, session, comment)
-    except NoTextException:
+    except NoTextMessageException:
         await message.answer("Наши комментарии поддерживают только текст")
 
 
