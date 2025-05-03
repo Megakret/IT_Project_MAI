@@ -299,8 +299,8 @@ async def get_place_comments(
         .offset((page - 1) * comments_per_page)
     )
     result = await session.execute(statement)
-    comments_list = list(result.scalars().all()) if result.scalar_one_or_none() else None
-    return comments_list
+    # comments_list = list(result.scalars().all()) if result.scalar_one_or_none() else None
+    return list(result.scalars().all())
 
 
 async def get_place_comments_all(
@@ -312,8 +312,8 @@ async def get_place_comments_all(
         .where(UserPlace.fk_place_address == address, UserPlace.comment.is_not(None))
     )
     result = await session.execute(statement)
-    comments_list = list(result.scalars().all()) if result.scalar_one_or_none() else None
-    return comments_list
+    # comments_list = list(result.scalars().all()) if result.scalar_one_or_none() else None
+    return list(result.scalars().all())
 
 
 async def add_user_place(

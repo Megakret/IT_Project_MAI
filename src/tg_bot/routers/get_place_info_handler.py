@@ -52,8 +52,6 @@ async def get_comments_for_paginator(
     page: int, places_per_page: int, address: str, session: AsyncSession
 ) -> list[str]:
     comments = await db.get_place_comments(session, page, places_per_page, address)
-    if comments is None:
-        comments = []
     return comments
 
 
@@ -178,7 +176,7 @@ async def summarize_comments(
         await callback.answer("Ожидайте...")
         summarizer = GptSummarize()
         comments = await db.get_place_comments_all(session, place.get_info())
-        if comments is None:
+        if len(comments) == 0:
             raise NoComments
         summarization: str = await summarizer.summarize_NAC(comments)
         await callback.message.answer(summarization)
