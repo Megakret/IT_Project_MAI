@@ -6,19 +6,18 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.methods.send_message import SendMessage
 from aiogram.types import ReplyKeyboardRemove
 from aiogram import F
-import asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
 from api.geosuggest.place import Place
-from tg_bot.keyboards import suggest_place_kbs, starter_kb
+from tg_bot.keyboards import starter_kb, insert_place_tags_kb, INSERT_PLACE_TAGS_TAG
 from tg_bot.aiogram_coros import message_sender_wrap, custom_clear
 from tg_bot.ui_components.GeosuggestSelector import (
     GeosuggestSelector,
     PLACE_KEY,
     KEYBOARD_PREFIX,
 )
+from tg_bot.ui_components.TagSelector import TAGS, SelectTagsStates, show_tag_menu
 from tg_bot.tg_exceptions import NoTextMessageException, ScoreOutOfRange
 import database.db_functions as db
-
 from database.db_exceptions import UniqueConstraintError
 
 
@@ -28,6 +27,7 @@ class NewPlaceFSM(StatesGroup):
     enter_description = State()
     enter_score = State()
     enter_comment = State()
+    enter_tags = State()
 
 
 router = Router()
@@ -87,10 +87,13 @@ async def answer_form_result(
 ):
     data = await state.get_data()
     place: Place = data["place"]
+    tag: str = data.get("tag", None)
     try:
         await db.add_place(
             session, place.get_name(), place.get_info(), data["description"]
         )
+        if tag is not None:
+            await db.add_place_tag(session, place.get_info(), tag)
     except UniqueConstraintError as e:
         print("Already existing place has been tried to add to global list")
         print(e.message)
@@ -120,8 +123,14 @@ async def enter_score(message: Message, state: FSMContext):
         if not (1 <= score <= 10):
             raise ScoreOutOfRange()
         await state.update_data(score=score)
-        await message.answer("Оставьте комментарий о месте")
-        await state.set_state(NewPlaceFSM.enter_comment)
+        await message.answer("Добавьте теги к месту")
+        await show_tag_menu(
+            message,
+            state,
+            keyboard=insert_place_tags_kb,
+            start_message="Нажмите на тег /<tag>, чтобы добавить его к месту\n",
+        )
+        await state.set_state(SelectTagsStates.selecting_tag)
     except ValueError:
         await message.answer("Введите число!")
     except ScoreOutOfRange:
@@ -132,12 +141,18 @@ async def enter_score(message: Message, state: FSMContext):
 async def enter_comment(message: Message, state: FSMContext, session: AsyncSession):
     try:
         comment: str = message.text
-        data = await state.get_data()
         if comment == "":
             raise NoTextMessageException
         await answer_form_result(message, state, session, comment)
     except NoTextMessageException:
         await message.answer("Наши комментарии поддерживают только текст")
+
+
+@router.callback_query(F.data == INSERT_PLACE_TAGS_TAG, SelectTagsStates.selecting_tag)
+async def insert_tags(callback: CallbackQuery, state: FSMContext):
+    print("BUMP")
+    await callback.message.answer("Оставьте комментарий о месте")
+    await state.set_state(NewPlaceFSM.enter_comment)
 
 
 @router.message(Command("fun"))
