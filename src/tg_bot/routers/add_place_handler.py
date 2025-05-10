@@ -153,6 +153,7 @@ async def insert_tags(callback: CallbackQuery, state: FSMContext):
     print("BUMP")
     await callback.message.answer("Оставьте комментарий о месте")
     await state.set_state(NewPlaceFSM.enter_comment)
+    await callback.answer()
 
 
 @router.message(Command("fun"))

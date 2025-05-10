@@ -115,6 +115,7 @@ async def show_comments(
         await paginator_service.start_paginator(
             callback.message, state, place.get_info(), session
         )
+        await callback.answer()
     except NoPlaceException:
         await callback.answer("Попробуйте ввести место еще раз")
 
@@ -179,10 +180,11 @@ async def summarize_comments(
             raise NoComments
         summarization: str = await summarizer.summarize_NAC(comments)
         await callback.message.answer(summarization)
+        await callback.answer()
     except NoPlaceException:
         await callback.answer("Попробуйте ввести место еще раз")
     except NoComments:
-        await callback.message.answer("Пока что для этого места нет комментариев")
+        await callback.answer("Пока что для этого места нет комментариев")
 
 
 @router.callback_query(F.data == LEAVE_COMMENT_TAG)
@@ -193,6 +195,7 @@ async def pressed_leave_comment_button(callback: CallbackQuery, state: FSMContex
         if place is None:
             raise NoPlaceException
         await callback.message.answer("Напишите комментарий текстом")
+        await callback.answer()
         await state.set_state(GetPlaceStates.enter_comment)
     except NoPlaceException:
         await callback.answer("Попробуйте ввести место еще раз")
