@@ -1,6 +1,6 @@
 from typing import Callable, Coroutine
 from aiogram import Router, F
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import Message, CallbackQuery, ReplyKeyboardRemove
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
@@ -45,6 +45,7 @@ paginator_service = PaginatorService(
 )
 
 
+@router.message(F.text == "Найти место по тегу")
 @router.message(Command("get_places_by_tag"))
 async def show_tag_menu_handler(message: Message, state: FSMContext):
     await show_tag_menu(

@@ -8,16 +8,17 @@ from tg_bot.routers.add_place_handler import router as add_place_router
 from tg_bot.routers.place_list_handlers import router as place_list_router
 from tg_bot.routers.user_place_list_handler import router as user_place_list_router
 from tg_bot.routers.get_place_info_handler import router as get_place_info_router
+from tg_bot.routers.gpt_talk_handlers import router as gpt_router
 from tg_bot.routers.channel_fetch_router import router as channel_router
 from tg_bot.routers.manager_ui.manager import router as manager_router
 from tg_bot.routers.manager_ui.manager_channel import router as manager_router_channel
 from tg_bot.routers.get_places_by_tag_handler import router as get_places_by_tag_router
+from tg_bot.routers.command_router import router as command_router
 from tg_bot.ui_components.TagSelector import generate_tag_handlers
 
 
 async def main() -> None:
-    dotenv.load_dotenv()
-    bot = Bot(getenv("BOT_TOKEN"))
+    bot = Bot(getenv("BOT_TOKEN").replace(r"\x3a", ":"))
     session_maker = init_database()
     dp = Dispatcher()
     dp.update.middleware(DatabaseConnectionMiddleware(session_maker))
@@ -25,10 +26,12 @@ async def main() -> None:
     dp.include_router(place_list_router)
     dp.include_router(user_place_list_router)
     dp.include_router(get_place_info_router)
+    dp.include_router(gpt_router)
     dp.include_router(channel_router)
     dp.include_router(manager_router)
     dp.include_router(manager_router_channel)
     dp.include_router(get_places_by_tag_router)
+    dp.include_router(command_router)
     generate_tag_handlers(get_places_by_tag_router)
     generate_tag_handlers(add_place_router)
     await dp.start_polling(bot)

@@ -9,6 +9,7 @@ from tg_bot.routers.channel_fetch_router import (
     remove_channel,
 )
 from tg_bot.routers.manager_ui.manager import ManagerFSM
+from tg_bot.routers.role_model_fsm.admin_fsm import *
 from tg_bot.routers.role_model_fsm.manager_fsm import *
 
 router = Router()
@@ -22,9 +23,14 @@ def check_channel_tag(tag: str) -> bool:
     )
 
 
+@router.message(F.text == "Управлене ТГ каналами", AdminFSM.start_state)
 @router.message(F.text == "Управление ТГ каналами", ManagerFSM.start_state)
 async def show_channel_menu(message: Message, state: FSMContext):
-    await state.set_state(ManagerFSM.channel_state)
+    await state.set_state(
+        ManagerFSM.channel_state
+        if await state.get_state() == str(ManagerFSM.channel_state)
+        else AdminFSM.channel_state
+    )
     await message.answer("Вы перешли в меню настроек каналов", reply_markup=channel_kb)
 
 

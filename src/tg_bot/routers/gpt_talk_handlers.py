@@ -1,12 +1,14 @@
 from aiogram import Router
 from aiogram.filters import Command
-from aiogram.types import Message
+from aiogram.types import Message, ReplyKeyboardRemove
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from api.gpt.GptTalker import GptTalker
 from tg_bot.aiogram_coros import custom_clear
 from tg_bot.tg_exceptions import NoTextMessageException
+from tg_bot.routers.add_place_handler import handle_cmd_start
 from httpx import ReadTimeout
+from sqlalchemy.ext.asyncio import AsyncSession
 
 router = Router()
 
@@ -22,14 +24,16 @@ async def start_gpt(message: Message, state: FSMContext):
     await state.set_state(GptTalkFSM.talk_state)
     await state.update_data(gpt_talker=gpt_talker)
     await message.answer(
-        "Хорошо, давай поговорим. Чтобы прекратить диалог введите команду /exit"
+        "Хорошо, давай поговорим. Чтобы прекратить диалог введите команду /exit",
+        reply_markup=ReplyKeyboardRemove(),
     )
 
 
 @router.message(GptTalkFSM.talk_state, Command("exit"))
-async def exit_gpt_mode(message: Message, state: FSMContext):
+async def exit_gpt_mode(message: Message, state: FSMContext, session: AsyncSession):
     await custom_clear(state)
     await message.answer("Вы вышли из режима gpt")
+    await handle_cmd_start(message, state, session)
 
 
 @router.message(GptTalkFSM.talk_state)
