@@ -1,0 +1,39 @@
+{
+  "modelUri": "gpt://<идентификатор_каталога>/yandexgpt/rc",
+  "completionOptions": {
+    "stream": false
+  },
+  "messages": [
+    {
+      "role": "user",
+      "text": "Назови дату первого полета Гагарина."
+    }
+  ],
+  "json_schema": {
+    "schema": {
+      "properties": {
+        "day": {
+          "title": "Day",
+          "description": "День месяца",
+          "type": "integer"
+        },
+        "month": {
+          "title": "Month",
+          "description": "Месяц, словом",
+          "type": "string"
+        },
+        "year": {
+          "title": "Year",
+          "description": "Год",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "day",
+        "month",
+        "year"
+      ],
+      "type": "object"
+    }
+  }
+}
