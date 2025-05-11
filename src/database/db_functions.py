@@ -1,7 +1,7 @@
 import asyncio
 import sqlite3
 
-from sqlalchemy import CheckConstraint, ForeignKey, UniqueConstraint, delete, func, select, update
+from sqlalchemy import CheckConstraint, ForeignKey, UniqueConstraint, delete, exists, func, select, update
 from sqlalchemy.ext.asyncio import (
     AsyncAttrs,
     async_sessionmaker,
@@ -31,7 +31,7 @@ class Base(AsyncAttrs, DeclarativeBase):
 class User(Base):
     __tablename__ = "user"
 
-    id: Mapped[int] = mapped_column(primary_key=True, unique=True, autoincrement=False)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=False)
     name: Mapped[str] = mapped_column(unique=True)
     email: Mapped[str] = mapped_column(unique=True)
     rights: Mapped[int] = mapped_column(CheckConstraint("rights BETWEEN 1 and 3"))
@@ -45,6 +45,7 @@ class User(Base):
 class Place(Base):
     __tablename__ = "place"
 
+    id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str]
     address: Mapped[str] = mapped_column(unique=True)
     desc: Mapped[str | None]
@@ -55,8 +56,6 @@ class Place(Base):
     place_tags: Mapped[list["Tag"]] = relationship(
         back_populates="place", cascade="all, delete-orphan"
     )
-
-    __mapper_args__ = {"primary_key": address}
 
 
 class Requests(Base):
@@ -134,6 +133,17 @@ async def add_user(
         await session.commit()
 
 
+async def is_existing_user(
+    session: AsyncSession,
+    id: int
+) -> bool:
+    statement = (
+        select(exists().where(User.id == id))
+    )
+    is_existing = await session.execute(statement)
+    return is_existing.scalar_one()
+
+
 async def is_manager(
     session: AsyncSession,
     id: int
@@ -209,6 +219,17 @@ async def get_places(
     return instance_list
 
 
+async def is_existing_place(
+    session: AsyncSession,
+    address: str
+) -> bool:
+    statement = (
+        select(exists().where(Place.address == address))
+    )
+    is_existing = await session.execute(statement)
+    return is_existing.scalar_one()
+
+
 async def remove_place(
     session: AsyncSession,
     address: str
@@ -217,7 +238,7 @@ async def remove_place(
 
 
 async def add_place_tag(
-    session:AsyncSession,
+    session: AsyncSession,
     address: str,
     place_tag: str
 ) -> None:
@@ -245,6 +266,31 @@ async def add_place_tag(
         await session.commit()
 
 
+async def add_place_tags(
+    session: AsyncSession,
+    address: str,
+    place_tags: tuple[str]
+) -> None:
+    try:
+        instances_to_add = [Tag(fk_place_address=address, place_tag=tag) for tag in place_tags]
+        session.add_all(instances_to_add)
+        await session.flush()
+    except IntegrityError as error:
+        await session.rollback()
+        if isinstance(error.orig, sqlite3.IntegrityError):
+            if error.orig.sqlite_errorcode == 2067:
+                raise UniqueConstraintError(["address", "place_tags"], [address, *place_tags])
+            else:
+                raise ConstraintError(["address", "place_tags"], [address, *place_tags])
+        else:
+            raise
+    except:
+        await session.rollback()
+        raise
+    else:
+        await session.commit()
+
+
 async def get_place_tags(
     session: AsyncSession,
     address: str
@@ -260,7 +306,9 @@ async def get_place_tags(
 
 async def get_places_with_tag(
     session: AsyncSession,
-    tag: str
+    tag: str,
+    page: int,
+    places_per_page: int
 ) -> list[Place]:
     statement = (
         select(Place)
@@ -268,6 +316,8 @@ async def get_places_with_tag(
             Tag.place_tag == tag,
             Place.address == Tag.fk_place_address
         )
+        .limit(places_per_page)
+        .offset((page - 1) * places_per_page)
     )
     result = await session.execute(statement)
     instance_list = list(result.scalars().all())
@@ -446,12 +496,29 @@ async def get_place_with_score(session: AsyncSession, address: str) -> tuple[Pla
 
 async def remove_review(
     session: AsyncSession,
-    id: int,
-    address: str
+    username: str,
+    place_id: int
 ) -> None:
     statement = (
         delete(UserPlace)
-        .where(UserPlace.fk_user_id == id, UserPlace.fk_place_address == address)
+        .where(
+            UserPlace.fk_user_id == (
+                (
+                    await session.execute(
+                        statement=select(User.id)
+                        .where(User.name == username)
+                    )
+                ).scalar_one()
+            ),
+            UserPlace.fk_place_address == (
+                (
+                    await session.execute(
+                        statement=select(Place.address)
+                        .where(Place.id == place_id)
+                    )
+                ).scalar_one()
+            )
+        )
     )
     await session.execute(statement)
 
