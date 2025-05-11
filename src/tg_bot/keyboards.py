@@ -77,6 +77,31 @@ insert_place_tags_kb = InlineKeyboardMarkup(
     ]
 )
 
+manager_kb = ReplyKeyboardMarkup(
+    keyboard=[
+        [
+            KeyboardButton(text="Управление ТГ каналами"),
+            KeyboardButton(text="Управление местами"),
+        ],
+        [KeyboardButton(text="Назад")],
+    ],
+    resize_keyboard=True,
+)
+
+channel_kb = ReplyKeyboardMarkup(
+    keyboard=[
+        [
+            KeyboardButton(text="Добавить ТГ канал"),
+            KeyboardButton(text="Подключённые каналы"),
+            KeyboardButton(text="Удалить канал"),
+        ],
+        [KeyboardButton(text="Помощь")],
+    ],
+    resize_keyboard=True,
+)
+
+place_manager_kb = ReplyKeyboardMarkup(keyboard=[])
+
 
 def generate_page_kb(page: int, postfix: str) -> InlineKeyboardMarkup:
     page_select_kb = InlineKeyboardMarkup(
