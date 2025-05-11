@@ -3,6 +3,7 @@ from aiogram.types import Message, CallbackQuery
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.exc import NoResultFound
 from aiogram.fsm.state import State, StatesGroup
 from tg_bot.tg_exceptions import NoTextMessageException
 from tg_bot.ui_components.GeosuggestSelector import (
@@ -58,10 +59,6 @@ paginator_service = PaginatorService(
 )
 
 
-class NoPlaceInDbException(Exception):
-    pass
-
-
 @router.message(Command("get_place"))
 async def get_place_handler(message: Message, state: FSMContext):
     await state.clear()
@@ -83,8 +80,6 @@ async def find_place_handler(
     place: Place = data.get(PLACE_KEY)
     try:
         db_res = await db.get_place_with_score(session, place.get_info())
-        if db_res is None:
-            raise NoPlaceInDbException()
         db_place: db.Place = db_res[0]
         score: int = db_res[1]
         if score is None:
@@ -97,7 +92,7 @@ async def find_place_handler(
                 f"{db_place.name}\n{db_place.address}\n{db_place.desc}\nВаша оценка месту: {score}",
                 reply_markup=show_comments_keyboard,
             )
-    except NoPlaceInDbException:
+    except NoResultFound:
         await callback.message.answer(
             "Этого места еще нет в базе, но вы можете его добавить с помощью команды /add_place"
         )
@@ -115,6 +110,7 @@ async def show_comments(
         await paginator_service.start_paginator(
             callback.message, state, place.get_info(), session
         )
+        await callback.answer()
     except NoPlaceException:
         await callback.answer("Попробуйте ввести место еще раз")
 
@@ -179,10 +175,11 @@ async def summarize_comments(
             raise NoComments
         summarization: str = await summarizer.summarize_NAC(comments)
         await callback.message.answer(summarization)
+        await callback.answer()
     except NoPlaceException:
         await callback.answer("Попробуйте ввести место еще раз")
     except NoComments:
-        await callback.message.answer("Пока что для этого места нет комментариев")
+        await callback.answer("Пока что для этого места нет комментариев")
 
 
 @router.callback_query(F.data == LEAVE_COMMENT_TAG)
@@ -193,6 +190,7 @@ async def pressed_leave_comment_button(callback: CallbackQuery, state: FSMContex
         if place is None:
             raise NoPlaceException
         await callback.message.answer("Напишите комментарий текстом")
+        await callback.answer()
         await state.set_state(GetPlaceStates.enter_comment)
     except NoPlaceException:
         await callback.answer("Попробуйте ввести место еще раз")

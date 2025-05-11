@@ -14,7 +14,7 @@ POSTFIX = "real_place"
 
 async def get_formatted_list(
     page: int, places_per_page: int, session: AsyncSession, **kwargs
-) -> str:
+) -> list[str]:
     place_list: list[Place] = await get_places(session, page, places_per_page)
     place_formatted_list: map[str] = map(
         lambda x: f"{x.name}\n{x.address}\n{x.desc}", place_list

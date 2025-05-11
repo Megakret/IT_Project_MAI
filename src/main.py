@@ -8,6 +8,8 @@ from tg_bot.routers.add_place_handler import router as add_place_router
 from tg_bot.routers.place_list_handlers import router as place_list_router
 from tg_bot.routers.user_place_list_handler import router as user_place_list_router
 from tg_bot.routers.get_place_info_handler import router as get_place_info_router
+from tg_bot.routers.get_places_by_tag_handler import router as get_places_by_tag_router
+from tg_bot.ui_components.TagSelector import generate_tag_handlers
 
 
 async def main() -> None:
@@ -20,6 +22,9 @@ async def main() -> None:
     dp.include_router(place_list_router)
     dp.include_router(user_place_list_router)
     dp.include_router(get_place_info_router)
+    dp.include_router(get_places_by_tag_router)
+    generate_tag_handlers(get_places_by_tag_router)
+    generate_tag_handlers(add_place_router)
     await dp.start_polling(bot)
 
 

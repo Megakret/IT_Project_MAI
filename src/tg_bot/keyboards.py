@@ -13,6 +13,8 @@ INDICATOR_CLICKED = "page_indicator_"
 GET_COMMENTS_TAG = "get_comments"
 SUMMARIZE_COMMENTS_TAG = "summarize_comments"
 LEAVE_COMMENT_TAG = "leave_comment"
+SHOW_PLACES_BY_TAG = "search_places_by_tag"
+INSERT_PLACE_TAGS_TAG = "insert_place_tag"
 suggest_place_kbs: list[InlineKeyboardMarkup] = []
 for i in range(SUGGEST_AMOUNT):
     suggest_place_kbs.append(
@@ -32,6 +34,7 @@ starter_kb = ReplyKeyboardMarkup(
         [KeyboardButton(text="/place_list")],
         [KeyboardButton(text="/user_place_list")],
         [KeyboardButton(text="/get_place")],
+        [KeyboardButton(text="/get_places_by_tag")],
     ],
     resize_keyboard=True,
 )
@@ -53,6 +56,24 @@ show_comments_keyboard = InlineKeyboardMarkup(
                 text="Оставить комментарий", callback_data=LEAVE_COMMENT_TAG
             )
         ],
+    ]
+)
+show_places_by_tag_kb = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [
+            InlineKeyboardButton(
+                text="Найти места по тегу", callback_data=SHOW_PLACES_BY_TAG
+            )
+        ]
+    ]
+)
+insert_place_tags_kb = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [
+            InlineKeyboardButton(
+                text="Добавить теги к месту", callback_data=INSERT_PLACE_TAGS_TAG
+            )
+        ]
     ]
 )
 
