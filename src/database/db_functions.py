@@ -1,9 +1,5 @@
 import asyncio
 import sqlite3
-
-# TODO: sqlalchemy.exc.InvalidRequestError: Mapper 'Mapper[UserPlace(user_place)]' has no property 'user'. 
-#  If this property was indicated from other mappers or configure events, ensure registry.configure() 
-# has been called.
 from sqlalchemy import (
     CheckConstraint,
     ForeignKey,
@@ -48,7 +44,6 @@ class User(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=False)
     name: Mapped[str] = mapped_column(unique=True)
-    email: Mapped[str] = mapped_column(unique=True)
     rights: Mapped[int] = mapped_column(CheckConstraint("rights BETWEEN 1 and 3"))
     is_banned: Mapped[bool]
 
@@ -117,7 +112,6 @@ async def add_user(
     session: AsyncSession,
     id: int,
     name: str,
-    email: str,
     rights: int | None = 1,
     is_banned: bool | None = False,
 ) -> None:
@@ -126,7 +120,6 @@ async def add_user(
             User(
                 id=id,
                 name=name,
-                email=email,
                 rights=rights,
                 is_banned=is_banned,
             )
@@ -136,9 +129,9 @@ async def add_user(
         await session.rollback()
         if isinstance(error.orig, sqlite3.IntegrityError):
             if error.orig.sqlite_errorcode == 2067:
-                raise UniqueConstraintError(["email"], [email])
+                raise UniqueConstraintError(["id"], [str(id)])
             else:
-                raise ConstraintError(["email"], [email])
+                raise ConstraintError(["id"], [str(id)])
         else:
             raise
     except:
