@@ -65,7 +65,6 @@ async def show_places(
         if tag is None:
             raise NoTagException
         await paginator_service.start_paginator(callback.message, state, session, tag)
-        await state.update_data(**{TAG_DATA_KEY: None})
         await callback.answer()
     except KeyError as e:
         await callback.answer(
@@ -74,6 +73,7 @@ async def show_places(
         await callback.answer()
     except NoTagException:
         await callback.answer("Вы не выбрали ни одного тега")
+    await state.set_state(None)
 
 
 @router.callback_query(F.data == SHOW_PLACES_BY_TAG)

@@ -52,4 +52,5 @@ async def show_tag_menu(
     formed_message: str = start_message
     formed_message += "\n".join(map(lambda x: f"/{x} - {TAGS[x]}", TAGS))
     await state.set_state(SelectTagsStates.selecting_tag)
+    await state.update_data(**{TAG_DATA_KEY: []})
     await message.answer(formed_message, reply_markup=keyboard)

@@ -375,7 +375,7 @@ async def add_comment(
     else:
         await session.commit()
 
-
+# TODO: I need username which starts with @, not plain integer user id
 async def get_place_comments(
     session: AsyncSession, page: int, comments_per_page: int, address: str
 ) -> list[tuple[int, str | None]]:
