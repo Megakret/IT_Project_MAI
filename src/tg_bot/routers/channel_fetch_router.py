@@ -60,7 +60,6 @@ async def fetch_data(message: types.Message) -> None:
     currently in development, only prints to the console, I wait DB for tg posts
     """
     if not check_channel(f"@{message.chat.username}"):
-        print("Message from unwanted channel:", message.chat.username)
         return
     out: dict = await reviewer.summarize_review_NAC(
         str(message.caption) + str(message.text)

@@ -23,7 +23,6 @@ def check_channel_tag(tag: str) -> bool:
     )
 
 
-@router.message(F.text == "Управлене ТГ каналами", AdminFSM.start_state)
 @router.message(F.text == "Управление ТГ каналами", ManagerFSM.start_state)
 async def show_channel_menu(message: Message, state: FSMContext):
     await state.set_state(ManagerFSM.channel_state)
