@@ -49,10 +49,14 @@ class GetPlaceStates(StatesGroup):
 async def get_comments_for_paginator(
     page: int, places_per_page: int, address: str, session: AsyncSession
 ) -> list[str]:
-    usernames_and_comments: list[tuple[int, str]] | None = await db.get_place_comments(session, page, places_per_page, address)
-    if usernames_and_comments is None:
+    usernames_comments_scores: list[tuple[str, str, int]] = await db.get_place_comments(
+        session, page, places_per_page, address
+    )
+    if usernames_comments_scores is None:
         return []
-    paged_data: list[str] = map(lambda x: f"{x[0]}\n{x[1]}", usernames_and_comments)
+    paged_data: list[str] = map(
+        lambda x: f"{x[0]}\n{x[1]}\nОценка месту: {x[2]}", usernames_comments_scores
+    )
     return list(paged_data)
 
 

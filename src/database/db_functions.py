@@ -141,6 +141,17 @@ async def add_user(
         await session.commit()
 
 
+async def delete_user(session: AsyncSession, user_id: int) -> None:
+    result = await session.execute(
+        delete(User).where(User.id == user_id).returning(User.id)
+    )
+
+    if not result.scalar_one_or_none():
+        raise ValueError(f"User with ID {user_id} not found")
+
+    await session.commit()
+
+
 async def is_existing_user(session: AsyncSession, id: int) -> bool:
     statement = select(exists().where(User.id == id))
     is_existing = await session.execute(statement)
@@ -157,6 +168,26 @@ async def is_admin(session: AsyncSession, id: int) -> bool:
     return result.scalar_one() == 3
 
 
+async def make_manager(session: AsyncSession, username: str) -> None:
+    result = await session.execute(select(User).where(User.name == username))
+    user = result.scalar_one_or_none()
+
+    if user is None:
+        raise ValueError(f"User '{username}' not found")
+    user.rights = 2
+    await session.commit()
+
+
+async def make_admin(session: AsyncSession, username: str) -> None:
+    result = await session.execute(select(User).where(User.name == username))
+    user = result.scalar_one_or_none()
+
+    if user is None:
+        raise ValueError(f"User '{username}' not found")
+    user.rights = 3
+    await session.commit()
+
+
 async def ban(session: AsyncSession, id: int) -> None:
     await session.execute(
         statement=update(User).where(User.id == id).values(is_banned=True)
@@ -167,6 +198,15 @@ async def unban(session: AsyncSession, id: int) -> None:
     await session.execute(
         statement=update(User).where(User.id == id).values(is_banned=False)
     )
+
+
+async def is_user_banned(session: AsyncSession, user_id: int) -> bool:
+    result = await session.execute(select(User.is_banned).where(User.id == user_id))
+    banned_status = result.scalar_one_or_none()
+
+    if banned_status is None:
+        return False
+    return banned_status
 
 
 async def add_place(
@@ -198,6 +238,16 @@ async def add_place(
         raise
     else:
         await session.commit()
+
+
+async def delete_place_by_address(session: AsyncSession, address: str) -> None:
+    result = await session.execute(select(Place).where(Place.address == address))
+    place = result.scalar_one_or_none()
+
+    if place is None:
+        raise ValueError(f"Place with address '{address}' not found")
+    await session.execute(delete(Place).where(Place.address == address))
+    await session.commit()
 
 
 async def get_places(
@@ -334,6 +384,22 @@ async def rate(
         await session.commit()
 
 
+async def user_has_comment(
+    session: AsyncSession, user_id: int, place_address: str
+) -> bool:
+    comment_exists = await session.execute(
+        select(
+            exists().where(
+                UserPlace.fk_user_id == user_id,
+                UserPlace.fk_place_address == place_address,
+                UserPlace.comment.is_not(None),
+            )
+        )
+    )
+
+    return comment_exists.scalar_one()
+
+
 async def add_comment(
     session: AsyncSession,
     user_id: int,
@@ -368,18 +434,28 @@ async def add_comment(
     else:
         await session.commit()
 
+
 # TODO: I need username which starts with @, not plain integer user id
+# returns <username with @, comment, score>
 async def get_place_comments(
     session: AsyncSession, page: int, comments_per_page: int, address: str
-) -> list[tuple[int, str | None]]:
+) -> list[tuple[str, str, int]]:
     statement = (
-        select(UserPlace.fk_user_id, UserPlace.comment)
+        select(User.name, UserPlace.comment, UserPlace.score)
+        .join(User, User.id == UserPlace.fk_user_id)
         .where(UserPlace.fk_place_address == address, UserPlace.comment.is_not(None))
+        .order_by(UserPlace.score.desc())
         .limit(comments_per_page)
         .offset((page - 1) * comments_per_page)
     )
+
     result = await session.execute(statement)
-    return list(result.tuples())
+    comments = result.all()
+    return [
+        ("@" + username, comment, score)
+        for username, comment, score in comments
+        if comment is not None
+    ]
 
 
 async def get_place_comments_all(
