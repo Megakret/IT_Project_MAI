@@ -1,7 +1,19 @@
 import asyncio
 import sqlite3
 
-from sqlalchemy import CheckConstraint, ForeignKey, UniqueConstraint, delete, exists, func, select, update
+# TODO: sqlalchemy.exc.InvalidRequestError: Mapper 'Mapper[UserPlace(user_place)]' has no property 'user'. 
+#  If this property was indicated from other mappers or configure events, ensure registry.configure() 
+# has been called.
+from sqlalchemy import (
+    CheckConstraint,
+    ForeignKey,
+    UniqueConstraint,
+    delete,
+    exists,
+    func,
+    select,
+    update,
+)
 from sqlalchemy.ext.asyncio import (
     AsyncAttrs,
     async_sessionmaker,
@@ -17,9 +29,12 @@ from database.db_exceptions import UniqueConstraintError, ConstraintError
 engine: AsyncEngine
 async_session_maker: async_sessionmaker
 
+
 def init_database() -> async_sessionmaker:
     global engine
-    engine = create_async_engine("sqlite+aiosqlite:///src/database/database.db", echo=True)
+    engine = create_async_engine(
+        "sqlite+aiosqlite:///src/database/database.db", echo=True
+    )
     async_session_maker = async_sessionmaker(engine, expire_on_commit=False)
     return async_session_maker
 
@@ -38,7 +53,7 @@ class User(Base):
     is_banned: Mapped[bool]
 
     user_places: Mapped[list["UserPlace"]] = relationship(
-        back_populates="user", cascade="all, delete-orphan"
+        back_populates="parent_user", cascade="all, delete-orphan"
     )
 
 
@@ -51,10 +66,10 @@ class Place(Base):
     desc: Mapped[str | None]
 
     user_places: Mapped[list["UserPlace"]] = relationship(
-        back_populates="place", cascade="all, delete-orphan"
+        back_populates="parent_place", cascade="all, delete-orphan"
     )
     place_tags: Mapped[list["Tag"]] = relationship(
-        back_populates="place", cascade="all, delete-orphan"
+        back_populates="parent_place", cascade="all, delete-orphan"
     )
 
 
@@ -77,8 +92,8 @@ class UserPlace(Base):
     score: Mapped[int | None] = mapped_column(CheckConstraint("score BETWEEN 1 and 10"))
     comment: Mapped[str | None]
 
-    parent_user: Mapped["User"] = relationship(back_populates="userplace")
-    parent_place: Mapped["Place"] = relationship(back_populates="userplace")
+    parent_user: Mapped["User"] = relationship(back_populates="user_places")
+    parent_place: Mapped["Place"] = relationship(back_populates="user_places")
 
     UniqueConstraint(fk_user_id, fk_place_address)
 
@@ -91,7 +106,7 @@ class Tag(Base):
     fk_place_address: Mapped[str] = mapped_column(ForeignKey(Place.address))
     place_tag: Mapped[str] = mapped_column()
 
-    parent_place: Mapped["Place"] = relationship(back_populates="tag")
+    parent_place: Mapped["Place"] = relationship(back_populates="place_tags")
 
     UniqueConstraint(fk_place_address, place_tag)
 
@@ -99,12 +114,12 @@ class Tag(Base):
 
 
 async def add_user(
-        session: AsyncSession,
-        id: int,
-        name: str,
-        email: str,
-        rights: int | None = 1,
-        is_banned: bool | None = False
+    session: AsyncSession,
+    id: int,
+    name: str,
+    email: str,
+    rights: int | None = 1,
+    is_banned: bool | None = False,
 ) -> None:
     try:
         session.add(
@@ -133,45 +148,32 @@ async def add_user(
         await session.commit()
 
 
-async def is_existing_user(
-    session: AsyncSession,
-    id: int
-) -> bool:
-    statement = (
-        select(exists().where(User.id == id))
-    )
+async def is_existing_user(session: AsyncSession, id: int) -> bool:
+    statement = select(exists().where(User.id == id))
     is_existing = await session.execute(statement)
     return is_existing.scalar_one()
 
 
-async def is_manager(
-    session: AsyncSession,
-    id: int
-) -> bool:
+async def is_manager(session: AsyncSession, id: int) -> bool:
     result = await session.execute(statement=select(User.rights).where(User.id == id))
     return result.scalar_one() >= 2
 
 
-async def is_admin(
-    session: AsyncSession,
-    id: int
-) -> bool:
+async def is_admin(session: AsyncSession, id: int) -> bool:
     result = await session.execute(statement=select(User.rights).where(User.id == id))
     return result.scalar_one() == 3
 
 
-async def ban(
-    session: AsyncSession,
-    id: int
-) -> None:
-    await session.execute(statement=update(User).where(User.id == id).values(is_banned = True))
+async def ban(session: AsyncSession, id: int) -> None:
+    await session.execute(
+        statement=update(User).where(User.id == id).values(is_banned=True)
+    )
 
 
-async def unban(
-    session: AsyncSession,
-    id: int
-) -> None:
-    await session.execute(statement=update(User).where(User.id == id).values(is_banned = False))
+async def unban(session: AsyncSession, id: int) -> None:
+    await session.execute(
+        statement=update(User).where(User.id == id).values(is_banned=False)
+    )
 
 
 async def add_place(
@@ -219,29 +221,17 @@ async def get_places(
     return instance_list
 
 
-async def is_existing_place(
-    session: AsyncSession,
-    address: str
-) -> bool:
-    statement = (
-        select(exists().where(Place.address == address))
-    )
+async def is_existing_place(session: AsyncSession, address: str) -> bool:
+    statement = select(exists().where(Place.address == address))
     is_existing = await session.execute(statement)
     return is_existing.scalar_one()
 
 
-async def remove_place(
-    session: AsyncSession,
-    address: str
-) -> None:
+async def remove_place(session: AsyncSession, address: str) -> None:
     await session.execute(statement=delete(Place).where(Place.address == address))
 
 
-async def add_place_tag(
-    session: AsyncSession,
-    address: str,
-    place_tag: str
-) -> None:
+async def add_place_tag(session: AsyncSession, address: str, place_tag: str) -> None:
     try:
         session.add(
             Tag(
@@ -254,7 +244,9 @@ async def add_place_tag(
         await session.rollback()
         if isinstance(error.orig, sqlite3.IntegrityError):
             if error.orig.sqlite_errorcode == 2067:
-                raise UniqueConstraintError(["address", "place_tag"], [address, place_tag])
+                raise UniqueConstraintError(
+                    ["address", "place_tag"], [address, place_tag]
+                )
             else:
                 raise ConstraintError(["address", "place_tag"], [address, place_tag])
         else:
@@ -267,19 +259,21 @@ async def add_place_tag(
 
 
 async def add_place_tags(
-    session: AsyncSession,
-    address: str,
-    place_tags: tuple[str]
+    session: AsyncSession, address: str, place_tags: tuple[str]
 ) -> None:
     try:
-        instances_to_add = [Tag(fk_place_address=address, place_tag=tag) for tag in place_tags]
+        instances_to_add = [
+            Tag(fk_place_address=address, place_tag=tag) for tag in place_tags
+        ]
         session.add_all(instances_to_add)
         await session.flush()
     except IntegrityError as error:
         await session.rollback()
         if isinstance(error.orig, sqlite3.IntegrityError):
             if error.orig.sqlite_errorcode == 2067:
-                raise UniqueConstraintError(["address", "place_tags"], [address, *place_tags])
+                raise UniqueConstraintError(
+                    ["address", "place_tags"], [address, *place_tags]
+                )
             else:
                 raise ConstraintError(["address", "place_tags"], [address, *place_tags])
         else:
@@ -291,31 +285,19 @@ async def add_place_tags(
         await session.commit()
 
 
-async def get_place_tags(
-    session: AsyncSession,
-    address: str
-) -> tuple[str]:
-    statement = (
-        select(Tag.place_tag)
-        .where(Tag.fk_place_address == address)
-    )
+async def get_place_tags(session: AsyncSession, address: str) -> tuple[str]:
+    statement = select(Tag.place_tag).where(Tag.fk_place_address == address)
     result = await session.execute(statement)
     tags_list = result.one().tuple()
     return tags_list
 
 
 async def get_places_with_tag(
-    session: AsyncSession,
-    tag: str,
-    page: int,
-    places_per_page: int
+    session: AsyncSession, tag: str, page: int, places_per_page: int
 ) -> list[Place]:
     statement = (
         select(Place)
-        .where(
-            Tag.place_tag == tag,
-            Place.address == Tag.fk_place_address
-        )
+        .where(Tag.place_tag == tag, Place.address == Tag.fk_place_address)
         .limit(places_per_page)
         .offset((page - 1) * places_per_page)
     )
@@ -349,9 +331,7 @@ async def rate(
                     ["user_id", "address"], [str(user_id), address]
                 )
             else:
-                raise ConstraintError(
-                    ["user_id", "address"], [str(user_id), address]
-                )
+                raise ConstraintError(["user_id", "address"], [str(user_id), address])
         else:
             raise
     except:
@@ -386,9 +366,7 @@ async def add_comment(
                     ["user_id", "address"], [str(user_id), address]
                 )
             else:
-                raise ConstraintError(
-                    ["user_id", "address"], [str(user_id), address]
-                )
+                raise ConstraintError(["user_id", "address"], [str(user_id), address])
         else:
             raise
     except:
@@ -399,10 +377,7 @@ async def add_comment(
 
 
 async def get_place_comments(
-    session: AsyncSession,
-    page: int,
-    comments_per_page: int,
-    address: str
+    session: AsyncSession, page: int, comments_per_page: int, address: str
 ) -> list[tuple[int, str | None]]:
     statement = (
         select(UserPlace.fk_user_id, UserPlace.comment)
@@ -415,12 +390,10 @@ async def get_place_comments(
 
 
 async def get_place_comments_all(
-    session: AsyncSession,
-    address: str
+    session: AsyncSession, address: str
 ) -> list[tuple[int, str | None]]:
-    statement = (
-        select(UserPlace.fk_user_id, UserPlace.comment)
-        .where(UserPlace.fk_place_address == address, UserPlace.comment.is_not(None))
+    statement = select(UserPlace.fk_user_id, UserPlace.comment).where(
+        UserPlace.fk_place_address == address, UserPlace.comment.is_not(None)
     )
     result = await session.execute(statement)
     return list(result.tuples())
@@ -438,10 +411,10 @@ async def add_user_place(
             UserPlace(fk_user_id=user_id, fk_place_address=address, score=score)
         )
         await session.flush()
-        if (score):
+        if score:
             await rate(session, user_id, address, score)
             await session.flush()
-        if (comment):
+        if comment:
             await add_comment(session, user_id, address, comment)
             await session.flush()
     except IntegrityError as error:
@@ -452,9 +425,7 @@ async def add_user_place(
                     ["user_id", "address"], [str(user_id), address]
                 )
             else:
-                raise ConstraintError(
-                    ["user_id", "address"], [str(user_id), address]
-                )
+                raise ConstraintError(["user_id", "address"], [str(user_id), address])
         else:
             raise
     except:
@@ -482,7 +453,9 @@ async def get_user_places(
     return instance_list
 
 
-async def get_place_with_score(session: AsyncSession, address: str) -> tuple[Place, float | None]:
+async def get_place_with_score(
+    session: AsyncSession, address: str
+) -> tuple[Place, float | None]:
     statement = (
         select(Place, func.avg(UserPlace.score))
         .outerjoin(UserPlace, Place.address == UserPlace.fk_place_address)
@@ -494,31 +467,24 @@ async def get_place_with_score(session: AsyncSession, address: str) -> tuple[Pla
     return instance_with_score
 
 
-async def remove_review(
-    session: AsyncSession,
-    username: str,
-    place_id: int
-) -> None:
-    statement = (
-        delete(UserPlace)
-        .where(
-            UserPlace.fk_user_id == (
-                (
-                    await session.execute(
-                        statement=select(User.id)
-                        .where(User.name == username)
-                    )
-                ).scalar_one()
-            ),
-            UserPlace.fk_place_address == (
-                (
-                    await session.execute(
-                        statement=select(Place.address)
-                        .where(Place.id == place_id)
-                    )
-                ).scalar_one()
-            )
-        )
+async def remove_review(session: AsyncSession, username: str, place_id: int) -> None:
+    statement = delete(UserPlace).where(
+        UserPlace.fk_user_id
+        == (
+            (
+                await session.execute(
+                    statement=select(User.id).where(User.name == username)
+                )
+            ).scalar_one()
+        ),
+        UserPlace.fk_place_address
+        == (
+            (
+                await session.execute(
+                    statement=select(Place.address).where(Place.id == place_id)
+                )
+            ).scalar_one()
+        ),
     )
     await session.execute(statement)
 
