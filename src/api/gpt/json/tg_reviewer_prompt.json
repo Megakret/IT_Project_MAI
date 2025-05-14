@@ -1,0 +1,55 @@
+{
+    "modelUri": "",
+    "completionOptions": {
+        "stream": false,
+        "temperature": 0.6,
+        "maxTokens": 2000
+    },
+    "messages": [
+        {
+            "role": "system",
+            "text": "Ты будешь получать пост, в котором говорится о каком-то месте, из ТГ канала и должен будешь получать из него следующую информаци:\n\n1)Название места\n2)Отзыв о месте.\n\nЕсли в предоставленном посте нет информации о каком-либо месте, то просто верни строку \"Error\""
+        }
+    ],
+    "json_schema": {
+        "schema": {
+            "properties": {
+                "place": {
+                    "title": "place",
+                    "description": "Названия места из поста",
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "description": "Название i-ого места"
+                    },
+                    "minItems": 0,
+                    "maxItems": 100
+                },
+                "review": {
+                    "title": "review",
+                    "description": "Отзывы из поста",
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "description": "Отзыв о i-ом места"
+                    },
+                    "minItems": 0,
+                    "maxItems": 100
+                },
+                "error": {
+                    "title": "error",
+                    "description": "true, если в посте присутствовала ли в посте информация о месте, false иначе",
+                    "type": "boolean"
+                }
+            },
+            "required": [
+                "place",
+                "addres",
+                "review",
+                "error"
+            ],
+            "type": "object"
+        }
+    }
+
+}

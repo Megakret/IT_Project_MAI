@@ -66,6 +66,7 @@ paginator_service = PaginatorService(
 )
 
 
+@router.message(F.text == "Найти место")
 @router.message(Command("get_place"))
 async def get_place_handler(message: Message, state: FSMContext):
     await state.clear()

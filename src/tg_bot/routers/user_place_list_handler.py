@@ -33,6 +33,7 @@ paginator_service = PaginatorService(
 )
 
 
+@router.message(F.text == "Список посещённых мест")
 @router.message(Command("user_place_list"))
 async def show_user_place_list(
     message: Message, state: FSMContext, session: AsyncSession

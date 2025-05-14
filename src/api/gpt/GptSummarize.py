@@ -5,12 +5,15 @@ from copy import deepcopy
 
 
 class GptSummarize(GptRequest):
-    with open("src/api/gpt/review_prompt.json", encoding="UTF-8") as file:
+    with open("src/api/gpt/json/review_prompt.json", encoding="UTF-8") as file:
         __default_prompt = json.load(file)
+
     def __init__(self):
         super().__init__()
         self.__prompt = deepcopy(GptSummarize.__default_prompt)
-        self.__prompt["modelUri"] = f"gpt://{self._indentification_key}/yandexgpt-lite/latest"
+        self.__prompt["modelUri"] = (
+            f"gpt://{self._indentification_key}/yandexgpt-lite/latest"
+        )
 
     def __construct_message(reviews: list[str]) -> str:
         s = "Сделай выжимку из данных отзывов о местах:\n\n"
@@ -20,7 +23,9 @@ class GptSummarize(GptRequest):
 
     async def summarize(self, client: AsyncClient, reviews: list[str]) -> str:
         prompt = deepcopy(self.__prompt)
-        prompt["messages"].append({"role": "user", "text": GptSummarize.__construct_message(reviews)})
+        prompt["messages"].append(
+            {"role": "user", "text": GptSummarize.__construct_message(reviews)}
+        )
         response = await self.request(client, prompt)
         return response.json()["result"]["alternatives"][0]["message"]["text"]
 

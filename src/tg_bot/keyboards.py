@@ -28,15 +28,24 @@ for i in range(SUGGEST_AMOUNT):
             ]
         )
     )
-starter_kb = ReplyKeyboardMarkup(
-    keyboard=[
-        [KeyboardButton(text="/add_place")],
-        [KeyboardButton(text="/place_list")],
-        [KeyboardButton(text="/user_place_list")],
-        [KeyboardButton(text="/get_place")],
-        [KeyboardButton(text="/get_places_by_tag")],
+starter_buttons = [
+    [
+        KeyboardButton(text="Добавить место"),
+        KeyboardButton(text="Список мест"),
+        KeyboardButton(text="Список посещённых мест"),
     ],
+    [KeyboardButton(text="Найти место по тегу"), KeyboardButton(text="Найти место")],
+]
+
+starter_kb = ReplyKeyboardMarkup(keyboard=starter_buttons)
+
+starter_manager_kb = ReplyKeyboardMarkup(
+    keyboard=starter_buttons + [[KeyboardButton(text="Панель менеджера")]],
     resize_keyboard=True,
+)
+
+starter_admin_kb = ReplyKeyboardMarkup(
+    keyboard=starter_buttons + [[KeyboardButton(text="Админ панель")]],
 )
 
 show_comments_keyboard = InlineKeyboardMarkup(
@@ -76,6 +85,58 @@ insert_place_tags_kb = InlineKeyboardMarkup(
         ]
     ]
 )
+
+manager_kb = ReplyKeyboardMarkup(
+    keyboard=[
+        [
+            KeyboardButton(text="Управление ТГ каналами"),
+            KeyboardButton(text="Управление местами"),
+            KeyboardButton(text="Запросы на добавления"),
+        ],
+        [KeyboardButton(text="Назад")],
+    ],
+    resize_keyboard=True,
+)
+
+
+admin_kb = ReplyKeyboardMarkup(
+    keyboard=[
+        [
+            KeyboardButton(text="Управление ТГ каналами"),
+            KeyboardButton(text="Управление местами"),
+        ],
+        [
+            KeyboardButton(text="Запросы на добавления"),
+            KeyboardButton(text="Управление пользователями"),
+        ],
+        [KeyboardButton(text="Назад")],
+    ],
+)
+
+channel_kb = ReplyKeyboardMarkup(
+    keyboard=[
+        [
+            KeyboardButton(text="Добавить ТГ канал"),
+            KeyboardButton(text="Подключённые каналы"),
+            KeyboardButton(text="Удалить канал"),
+        ],
+        [KeyboardButton(text="Помощь"), KeyboardButton(text="Назад")],
+    ],
+    resize_keyboard=True,
+)
+
+place_kb = ReplyKeyboardMarkup(
+    keyboard=[
+        [
+            KeyboardButton(text="Добавить место"),
+            KeyboardButton(text="Список мест"),
+            KeyboardButton(text="Найти место"),
+        ],
+        [KeyboardButton(text="Помощь"), KeyboardButton(text="Назад")],
+    ]
+)
+
+place_manager_kb = ReplyKeyboardMarkup(keyboard=[])
 
 
 def generate_page_kb(page: int, postfix: str) -> InlineKeyboardMarkup:

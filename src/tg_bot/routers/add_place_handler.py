@@ -4,11 +4,17 @@ from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.methods.send_message import SendMessage
-from aiogram.types import ReplyKeyboardRemove
+from aiogram.types import ReplyKeyboardRemove, KeyboardButton
 from aiogram import F
 from sqlalchemy.ext.asyncio import AsyncSession
 from api.geosuggest.place import Place
-from tg_bot.keyboards import starter_kb, insert_place_tags_kb, INSERT_PLACE_TAGS_TAG
+from tg_bot.keyboards import (
+    starter_admin_kb,
+    starter_manager_kb,
+    starter_kb,
+    insert_place_tags_kb,
+    INSERT_PLACE_TAGS_TAG,
+)
 from tg_bot.aiogram_coros import message_sender_wrap, custom_clear
 from tg_bot.ui_components.GeosuggestSelector import (
     GeosuggestSelector,
@@ -24,6 +30,8 @@ from tg_bot.ui_components.TagSelector import (
 from tg_bot.tg_exceptions import NoTextMessageException, ScoreOutOfRange
 import database.db_functions as db
 from database.db_exceptions import UniqueConstraintError, ConstraintError
+from database.db_exceptions import UniqueConstraintError
+from aiogram.utils.keyboard import ReplyKeyboardBuilder
 
 
 class NewPlaceFSM(StatesGroup):
@@ -33,6 +41,32 @@ class NewPlaceFSM(StatesGroup):
     enter_score = State()
     enter_comment = State()
     enter_tags = State()
+
+
+# temp start
+managers = {"NoyerXoper"}
+admins = set()
+
+
+def get_permisions(user: str) -> int:
+    if user in admins:
+        return 2
+    if user in managers:
+        return 1
+    return 0
+
+
+def get_keyboard(user: str):
+    match get_permisions(user):
+        case 2:
+            return starter_admin_kb
+        case 1:
+            return starter_manager_kb
+        case _:
+            return starter_kb
+
+
+# temp end
 
 
 router = Router()
@@ -46,11 +80,11 @@ async def handle_cmd_start(
 ) -> None:
     await message.answer(
         "Привет. Напиши /add_place, чтобы добавить место для досуга",
-        reply_markup=starter_kb,
+        reply_markup=get_keyboard(message.from_user.username),
     )
     try:
         await db.add_user(
-            session, message.from_user.id, message.from_user.username
+            session, message.from_user.id, message.from_user.first_name, "blank"
         )
     except UniqueConstraintError as e:
         print(e.message)
@@ -58,6 +92,7 @@ async def handle_cmd_start(
         print(e.message)
         pass
     await state.clear()
+    print(await state.get_state())
 
 @router.message(Command("exit"))
 async def exit(message: Message, state: FSMContext) -> None:
@@ -67,6 +102,7 @@ async def exit(message: Message, state: FSMContext) -> None:
         await message.answer("Вы вышли из текущего меню")
     await state.set_state(None)
 
+@router.message(F.text == "Добавить место")
 @router.message(Command("add_place"))
 async def geosuggest_test(message: Message, state: FSMContext) -> None:
     await custom_clear(state)
@@ -125,10 +161,15 @@ async def answer_form_result(
                 f"Ваша оценка месту: {data["score"]}",
             )
         )
-        await message.answer(answer, reply_markup=starter_kb)
+        await message.answer(
+            answer, reply_markup=get_keyboard(message.from_user.username)
+        )
     except UniqueConstraintError as e:
         print(e.message)
-        await message.answer("Вы уже добавляли это место", reply_markup=starter_kb)
+        await message.answer(
+            "Вы уже добавляли это место",
+            reply_markup=get_keyboard(message.from_user.username),
+        )
     await custom_clear(state)
 
 

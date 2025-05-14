@@ -25,7 +25,7 @@
     "christmastree": "Рождественская елка",
     "cinemas": "Кинотеатр",
     "clothes shop": "Магазин одежды",
-    "college": "Колледж",
+    "college": "Колледж/Университет",
     "concert hall": "Концертный зал",
     "confectionary": "Кондитерская",
     "currency exchange": "Обмен валюты",
@@ -53,7 +53,7 @@
     "haulier": "Перевозчик",
     "helicopter": "Вертолет",
     "highspeed tram stop": "Остановка скоростного трамвая",
-    "hotels": "Гостиниц",
+    "hotels": "Гостиницы",
     "hypermarket": "Гипермаркет",
     "industrial enterprise": "Промышленное предприятие",
     "information": "Информация",
@@ -129,5 +129,6 @@
     "vegetation": "Растительность",
     "airport": "Аэропорт",
     "other": "Другое",
-    "house": "Дом"
+    "house": "Дом",
+    "museum": "Музей"
 }
