@@ -16,6 +16,7 @@ from tg_bot.keyboards import (
 )
 from tg_bot.ui_components.TagSelector import (
     TAGS,
+    TAG_DATA_KEY,
     SelectTagsStates,
     show_tag_menu,
 )
@@ -29,19 +30,19 @@ class NoTagException(Exception):
     pass
 
 
-# async def get_places_by_tag(
-#     page: int, places_per_page: int, session: AsyncSession, tag: str
-# ) -> map[str]:
-#     places: list[Place] = get_places_with_tag(session, tag)
-#     place_formatted_list: map[str] = map(
-#         lambda x: f"{x.name}\n{x.address}\n{x.desc}", places
-#     )
-#     return place_formatted_list
+async def get_places_by_tag(
+    page: int, places_per_page: int, session: AsyncSession, tag: str
+) -> list[str]:
+    places: list[Place] = await get_places_with_tag(session, tag, page, places_per_page)
+    place_formatted_list: map[str] = map(
+        lambda x: f"{x.name}\n{x.address}\n{x.desc}", places
+    )
+    return list(place_formatted_list)
 
 
-# paginator_service = PaginatorService(
-#     POSTFIX, PLACES_PER_PAGE, get_places_by_tag, "Мест с таким тегом еще нет"
-# )
+paginator_service = PaginatorService(
+    POSTFIX, PLACES_PER_PAGE, get_places_by_tag, "Мест с таким тегом еще нет"
+)
 
 
 @router.message(Command("get_places_by_tag"))
@@ -54,16 +55,18 @@ async def show_tag_menu_handler(message: Message, state: FSMContext):
     )
 
 
-# TODO: I NEED FUNCTION FOR PAGED PLACE INFORMATION.
 @router.callback_query(F.data == SHOW_PLACES_BY_TAG, SelectTagsStates.selecting_tag)
 async def show_places(
     callback: CallbackQuery, state: FSMContext, session: AsyncSession
 ):
     data = await state.get_data()
     try:
-        tag = data["tag"]
+        tag = data[TAG_DATA_KEY][-1]  # TODO: add fliter by multiple tags in db
         if tag is None:
             raise NoTagException
+        await paginator_service.start_paginator(callback.message, state, session, tag)
+        await state.update_data(**{TAG_DATA_KEY: None})
+        await callback.answer()
     except KeyError as e:
         await callback.answer(
             "Что-то пошло не так. Попробуйте еще раз ввести команду /get_places_by_tag"
@@ -71,16 +74,6 @@ async def show_places(
         await callback.answer()
     except NoTagException:
         await callback.answer("Вы не выбрали ни одного тега")
-    places: list[Place] = await get_places_with_tag(session, tag)
-    place_formatted_list: map[str] = map(
-        lambda x: f"{x.name}\n{x.address}\n{x.desc}", places
-    )
-    if len(places) == 0:
-        await callback.answer("Не нашлось мест с таким тегом.")
-        return
-    await callback.message.answer("----------------\n".join(place_formatted_list))
-    await state.update_data(tag=None)
-    await callback.answer()
 
 
 @router.callback_query(F.data == SHOW_PLACES_BY_TAG)
@@ -89,3 +82,39 @@ async def show_places_invalid(callback: CallbackQuery, state: FSMContext):
         "Что-то пошло не так. Попробуйте еще раз ввести команду /get_place_by_tag"
     )
     await callback.answer()
+
+
+@router.callback_query(F.data == NEXT_PAGE + POSTFIX)
+async def next_page(callback: CallbackQuery, state: FSMContext, session: AsyncSession):
+    data = await state.get_data()
+    try:
+        tag_list: list[str] = data[TAG_DATA_KEY]
+        tag: str = tag_list[-1]
+        await paginator_service.show_next_page(callback, state, session, tag)
+    except KeyError as e:
+        print(e)
+        await callback.answer("Что-то пошло не так, попробуйте заново ввести команду")
+
+
+@router.callback_query(F.data == PREV_PAGE + POSTFIX)
+async def prev_page(callback: CallbackQuery, state: FSMContext, session: AsyncSession):
+    data = await state.get_data()
+    try:
+        tag_list: list[str] = data[TAG_DATA_KEY]
+        tag: str = tag_list[-1]
+        await paginator_service.show_prev_page(callback, state, session, tag)
+    except KeyError as e:
+        print(e)
+        await callback.answer("Что-то пошло не так, попробуйте заново ввести команду")
+
+
+@router.callback_query(F.data == INDICATOR_CLICKED + POSTFIX)
+async def prev_page(callback: CallbackQuery, state: FSMContext, session: AsyncSession):
+    data = await state.get_data()
+    try:
+        tag_list: list[str] = data[TAG_DATA_KEY]
+        tag: str = tag_list[-1]
+        await paginator_service.indicator_clicked(callback, state, session, tag)
+    except KeyError as e:
+        print(e)
+        await callback.answer("Что-то пошло не так, попробуйте заново ввести команду")

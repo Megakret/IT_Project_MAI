@@ -15,6 +15,7 @@ TAGS = {
     "shopping_center": "Торговый центр",
     "for_friends": "Для друзей",
 }
+TAG_DATA_KEY = "tag_list"
 
 
 class SelectTagsStates(StatesGroup):
@@ -25,7 +26,10 @@ class SelectTagsStates(StatesGroup):
 def tag_handler_wrapper(tag: str) -> Coroutine:
     async def routine(message: Message, state: FSMContext):
         nonlocal tag
-        await state.update_data(tag=tag)
+        data: dict[str, any] = await state.get_data()
+        tag_list: list[str] = data.get("tag_list", [])
+        tag_list.append(tag)
+        await state.update_data(tag_list=tag_list)
         await message.answer(f"Вы выбрали тэг: {TAGS[tag]}")
 
     return routine

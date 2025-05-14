@@ -15,7 +15,12 @@ from tg_bot.ui_components.GeosuggestSelector import (
     PLACE_KEY,
     KEYBOARD_PREFIX,
 )
-from tg_bot.ui_components.TagSelector import TAGS, SelectTagsStates, show_tag_menu
+from tg_bot.ui_components.TagSelector import (
+    TAGS,
+    SelectTagsStates,
+    show_tag_menu,
+    TAG_DATA_KEY,
+)
 from tg_bot.tg_exceptions import NoTextMessageException, ScoreOutOfRange
 import database.db_functions as db
 from database.db_exceptions import UniqueConstraintError
@@ -87,13 +92,15 @@ async def answer_form_result(
 ):
     data = await state.get_data()
     place: Place = data["place"]
-    tag: str = data.get("tag", None)
+    tags: list[str] = data.get(TAG_DATA_KEY, None)
     try:
-        await db.add_place(
-            session, place.get_name(), place.get_info(), data["description"]
-        )
-        if tag is not None:
-            await db.add_place_tag(session, place.get_info(), tag)
+        does_place_exist: bool = await db.is_existing_place(session, place.get_info())
+        if not does_place_exist:
+            await db.add_place(
+                session, place.get_name(), place.get_info(), data["description"]
+            )
+        if tags is not None:
+            await db.add_place_tags(session, place.get_info(), tuple(tags))
     except UniqueConstraintError as e:
         print("Already existing place has been tried to add to global list")
         print(e.message)

@@ -17,7 +17,8 @@ class NoMorePages(Exception):
 class PaginatorService:
     pass
 
-
+# Pass in every public function additional args to function that gets paged data
+# argument message is just any message, so paginator service could send one by itself and start paginator
 class Paginator:
     def __init__(
         self,
