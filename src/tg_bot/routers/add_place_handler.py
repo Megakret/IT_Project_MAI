@@ -23,7 +23,7 @@ from tg_bot.ui_components.TagSelector import (
 )
 from tg_bot.tg_exceptions import NoTextMessageException, ScoreOutOfRange
 import database.db_functions as db
-from database.db_exceptions import UniqueConstraintError
+from database.db_exceptions import UniqueConstraintError, ConstraintError
 
 
 class NewPlaceFSM(StatesGroup):
@@ -50,9 +50,11 @@ async def handle_cmd_start(
     )
     try:
         await db.add_user(
-            session, message.from_user.id, message.from_user.first_name, "blank"
+            session, message.from_user.id, message.from_user.username
         )
     except UniqueConstraintError as e:
+        print(e.message)
+    except ConstraintError as e:
         print(e.message)
         pass
     await state.clear()
