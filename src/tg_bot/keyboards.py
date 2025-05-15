@@ -205,5 +205,4 @@ async def get_user_keyboard(session: AsyncSession, id: int) -> ReplyKeyboardMark
             case 1:
                 return starter_kb
     except NoResultFound as e:
-        print(e.message)
         raise UserNotFound("While getting user's rights he was not found.")

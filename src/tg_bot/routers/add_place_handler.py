@@ -11,6 +11,9 @@ from tg_bot.keyboards import (
     get_user_keyboard,
     insert_place_tags_kb,
     INSERT_PLACE_TAGS_TAG,
+    starter_admin_kb,
+    starter_manager_kb,
+    starter_kb
 )
 from tg_bot.ui_components.GeosuggestSelector import (
     GeosuggestSelector,
@@ -34,8 +37,6 @@ class NewPlaceFSM(StatesGroup):
     enter_score = State()
     enter_comment = State()
     enter_tags = State()
-
-
 # temp start
 managers = {"NoyerXoper", "megakret"}
 admins = set()
@@ -47,6 +48,16 @@ def get_permisions(user: str) -> int:
     if user in managers:
         return 1
     return 0
+
+
+def get_keyboard(user: str):
+    match get_permisions(user):
+        case 2:
+            return starter_admin_kb
+        case 1:
+            return starter_manager_kb
+        case _:
+            return starter_kb
 
 
 # temp end
