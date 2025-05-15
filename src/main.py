@@ -14,6 +14,9 @@ from tg_bot.routers.gpt_talk_handlers import router as gpt_router
 from tg_bot.routers.channel_fetch_router import router as channel_router
 from tg_bot.routers.manager_ui.manager import router as manager_router
 from tg_bot.routers.manager_ui.manager_channel import router as manager_router_channel
+from tg_bot.routers.manager_ui.manager_add_place_handlers import (
+    router as manager_add_place_router,
+)
 from tg_bot.routers.get_places_by_tag_handler import router as get_places_by_tag_router
 from tg_bot.routers.command_router import router as command_router
 from tg_bot.routers.start_handler import router as start_router
@@ -28,9 +31,10 @@ async def main() -> None:
     dp.update.middleware(DatabaseConnectionMiddleware(session_maker))
     attach_user_command_routers(user_commands_router, session_maker)
     dp.include_router(start_router)
-    dp.include_router(user_commands_router)
     dp.include_router(manager_router)
     dp.include_router(manager_router_channel)
+    dp.include_router(manager_add_place_router)
+    dp.include_router(user_commands_router)
     await dp.start_polling(bot)
 
 

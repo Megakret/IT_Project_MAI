@@ -10,3 +10,12 @@ class ManagerFSM(StatesGroup):
 class ChannelFSM(StatesGroup):
     add_channel_state = State()
     remove_channel_state = State()
+
+
+class ManagerAddPlaceFSM(ManagerFSM):
+    enter_place = State()
+    choose_place = State()
+    enter_description = State()
+    enter_score = State()
+    enter_comment = State()
+    enter_tags = State()
