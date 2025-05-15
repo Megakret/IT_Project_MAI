@@ -3,3 +3,6 @@ class NoTextMessageException(Exception):
 
 class ScoreOutOfRange(Exception):
     pass
+
+class UserNotFound(Exception):
+    pass

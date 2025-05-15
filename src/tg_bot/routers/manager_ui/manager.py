@@ -4,7 +4,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 from tg_bot.keyboards import manager_kb
 from tg_bot.routers.role_model_fsm.manager_fsm import ManagerFSM
-from tg_bot.routers.add_place_handler import handle_cmd_start
+from tg_bot.routers.start_handler import handle_cmd_start
 from sqlalchemy.ext.asyncio import AsyncSession
 from database.db_functions import is_manager
 

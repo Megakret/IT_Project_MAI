@@ -5,6 +5,7 @@ from aiogram import Bot, Dispatcher, Router
 from sqlalchemy.ext.asyncio import async_sessionmaker
 from database.db_functions import init_database
 from tg_bot.middlewares.DatabaseConnectionMiddleware import DatabaseConnectionMiddleware
+from tg_bot.middlewares.UserExistenceCheckMiddleware import UserExistenceCheckMiddleware
 from tg_bot.routers.add_place_handler import router as add_place_router
 from tg_bot.routers.place_list_handlers import router as place_list_router
 from tg_bot.routers.user_place_list_handler import router as user_place_list_router
@@ -33,10 +34,9 @@ async def main() -> None:
     dp.update.middleware(DatabaseConnectionMiddleware(session_maker))
     attach_user_command_routers(user_commands_router, session_maker)
     dp.include_router(start_router)
+    dp.include_router(user_commands_router)
     dp.include_router(manager_router)
     dp.include_router(manager_router_channel)
-    dp.include_router(manager_add_place_router)
-    dp.include_router(user_commands_router)
     await dp.start_polling(bot)
 
 

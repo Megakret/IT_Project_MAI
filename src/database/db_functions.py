@@ -207,6 +207,10 @@ async def is_manager(session: AsyncSession, id: int) -> bool:
     return (await get_permisions(session, id)) >= 2
 
 
+async def get_user_rights(session: AsyncSession, id: int)->int:
+    result = await session.execute(statement=select(User.rights).where(User.id == id))
+    return result.scalar_one()
+
 async def is_admin(session: AsyncSession, id: int) -> bool:
     return (await get_permisions(session, id)) == 3
 

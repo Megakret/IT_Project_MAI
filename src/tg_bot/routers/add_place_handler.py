@@ -1,31 +1,25 @@
 from aiogram import Router
-from aiogram.filters import CommandStart, Command
+from aiogram.filters import Command
 from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from aiogram.methods.send_message import SendMessage
-from aiogram.types import ReplyKeyboardRemove, KeyboardButton
+from aiogram.types import ReplyKeyboardRemove
 from aiogram import F
 from sqlalchemy.ext.asyncio import AsyncSession
 from api.geosuggest.place import Place
 from tg_bot.keyboards import (
-    starter_admin_kb,
-    starter_manager_kb,
-    starter_kb,
+    get_user_keyboard,
     insert_place_tags_kb,
     INSERT_PLACE_TAGS_TAG,
     starter_admin_kb,
     starter_manager_kb,
     starter_kb,
 )
-from tg_bot.aiogram_coros import message_sender_wrap, custom_clear
 from tg_bot.ui_components.GeosuggestSelector import (
     GeosuggestSelector,
-    PLACE_KEY,
     KEYBOARD_PREFIX,
 )
 from tg_bot.ui_components.TagSelector import (
-    TAGS,
     SelectTagsStates,
     show_tag_menu,
     TAG_DATA_KEY,
@@ -33,9 +27,7 @@ from tg_bot.ui_components.TagSelector import (
 from tg_bot.tg_exceptions import NoTextMessageException, ScoreOutOfRange
 from tg_bot.filters.role_model_filters import IsAdmin, IsManager
 import database.db_functions as db
-from database.db_exceptions import UniqueConstraintError, ConstraintError
 from database.db_exceptions import UniqueConstraintError
-from aiogram.utils.keyboard import ReplyKeyboardBuilder
 
 
 class NewPlaceFSM(StatesGroup):
@@ -47,13 +39,20 @@ class NewPlaceFSM(StatesGroup):
     enter_tags = State()
 
 
-async def __get_keyboard(session: AsyncSession, user_id: int):
-    match await db.get_permisions(session, user_id):
-        case 3:
-            return starter_admin_kb
-        case 2:
-            return starter_manager_kb
-    return starter_kb
+# temp start
+managers = {"NoyerXoper", "megakret"}
+admins = set()
+
+
+def get_permisions(user: str) -> int:
+    if user in admins:
+        return 2
+    if user in managers:
+        return 1
+    return 0
+
+
+# temp end
 
 
 router = Router()
@@ -65,18 +64,21 @@ geosuggest_selector = GeosuggestSelector(NewPlaceFSM.choose_place)
 async def handle_cmd_start(
     message: Message, state: FSMContext, session: AsyncSession
 ) -> None:
+    await message.answer(
+        "Привет. Напиши /add_place, чтобы добавить место для досуга",
+        reply_markup=get_keyboard(message.from_user.username),
+    )
     try:
-        await db.add_user(session, message.from_user.id, message.from_user.username)
+        await db.add_user(
+            session, message.from_user.id, message.from_user.first_name, "blank"
+        )
     except UniqueConstraintError as e:
         print(e.message)
     except ConstraintError as e:
         print(e.message)
         pass
     await state.clear()
-    await message.answer(
-        "Привет. Напиши /add_place, чтобы добавить место для досуга",
-        reply_markup=await __get_keyboard(session, message.from_user.id),
-    )
+    print(await state.get_state())
 
 
 @router.message(Command("exit"))
@@ -91,7 +93,6 @@ async def exit(message: Message, state: FSMContext) -> None:
 @router.message(F.text == "Добавить место")
 @router.message(Command("add_place"))
 async def geosuggest_test(message: Message, state: FSMContext) -> None:
-    await custom_clear(state)
     await message.answer(
         "Введите место для досуга: ", reply_markup=ReplyKeyboardRemove()
     )
@@ -146,6 +147,7 @@ async def answer_form_result(
     data = await state.get_data()
     place: Place = data["place"]
     tags: list[str] = data.get(TAG_DATA_KEY, None)
+    keyboard = get_user_keyboard(session, message.from_user.id)
     try:
         does_place_exist: bool = await db.is_existing_place(session, place.get_info())
         if not does_place_exist:
@@ -170,16 +172,14 @@ async def answer_form_result(
             )
         )
         await message.answer(
-            answer,
-            reply_markup=await __get_keyboard(session, message.from_user.id),
+            answer, reply_markup=get_keyboard(message.from_user.username)
         )
     except UniqueConstraintError as e:
         print(e.message)
         await message.answer(
             "Вы уже добавляли это место",
-            reply_markup=await __get_keyboard(session, message.from_user.id),
+            reply_markup=get_keyboard(message.from_user.username),
         )
-    await custom_clear(state)
 
 
 @router.message(NewPlaceFSM.enter_score)
@@ -216,7 +216,6 @@ async def enter_comment(message: Message, state: FSMContext, session: AsyncSessi
 
 @router.callback_query(F.data == INSERT_PLACE_TAGS_TAG, SelectTagsStates.selecting_tag)
 async def insert_tags(callback: CallbackQuery, state: FSMContext):
-    print("BUMP")
     await callback.message.answer("Оставьте комментарий о месте")
     await state.set_state(NewPlaceFSM.enter_comment)
     await callback.answer()

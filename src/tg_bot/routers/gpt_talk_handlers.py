@@ -6,7 +6,6 @@ from aiogram.fsm.state import State, StatesGroup
 from api.gpt.GptTalker import GptTalker
 from tg_bot.aiogram_coros import custom_clear
 from tg_bot.tg_exceptions import NoTextMessageException
-from tg_bot.routers.add_place_handler import handle_cmd_start
 from httpx import ReadTimeout
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -33,7 +32,7 @@ async def start_gpt(message: Message, state: FSMContext):
 async def exit_gpt_mode(message: Message, state: FSMContext, session: AsyncSession):
     await custom_clear(state)
     await message.answer("Вы вышли из режима gpt")
-    await handle_cmd_start(message, state, session)
+    # await handle_cmd_start(message, state, session)
 
 
 @router.message(GptTalkFSM.talk_state)

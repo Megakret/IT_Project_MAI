@@ -1,5 +1,6 @@
 from aiogram.methods.send_message import SendMessage
 from aiogram.fsm.context import FSMContext
+from aiogram.types import Message
 from tg_bot.ui_components.Paginator import Paginator
 
 

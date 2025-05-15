@@ -5,6 +5,10 @@ from aiogram.types import (
     KeyboardButton,
 )
 from aiogram.utils.keyboard import InlineKeyboardBuilder
+from sqlalchemy.exc import NoResultFound
+from sqlalchemy.ext.asyncio import AsyncSession
+from tg_bot.tg_exceptions import UserNotFound
+from database.db_functions import get_user_rights
 
 SUGGEST_AMOUNT: int = 5
 NEXT_PAGE = "next_page_"
@@ -201,4 +205,5 @@ async def get_user_keyboard(session: AsyncSession, id: int) -> ReplyKeyboardMark
             case 1:
                 return starter_kb
     except NoResultFound as e:
+        print(e.message)
         raise UserNotFound("While getting user's rights he was not found.")
