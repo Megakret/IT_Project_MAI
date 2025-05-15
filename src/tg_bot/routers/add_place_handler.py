@@ -11,9 +11,6 @@ from tg_bot.keyboards import (
     get_user_keyboard,
     insert_place_tags_kb,
     INSERT_PLACE_TAGS_TAG,
-    starter_admin_kb,
-    starter_manager_kb,
-    starter_kb,
 )
 from tg_bot.ui_components.GeosuggestSelector import (
     GeosuggestSelector,
@@ -58,36 +55,6 @@ def get_permisions(user: str) -> int:
 router = Router()
 
 geosuggest_selector = GeosuggestSelector(NewPlaceFSM.choose_place)
-
-
-@router.message(CommandStart())
-async def handle_cmd_start(
-    message: Message, state: FSMContext, session: AsyncSession
-) -> None:
-    await message.answer(
-        "Привет. Напиши /add_place, чтобы добавить место для досуга",
-        reply_markup=get_keyboard(message.from_user.username),
-    )
-    try:
-        await db.add_user(
-            session, message.from_user.id, message.from_user.first_name, "blank"
-        )
-    except UniqueConstraintError as e:
-        print(e.message)
-    except ConstraintError as e:
-        print(e.message)
-        pass
-    await state.clear()
-    print(await state.get_state())
-
-
-@router.message(Command("exit"))
-async def exit(message: Message, state: FSMContext) -> None:
-    if await state.get_state() is None:
-        await message.answer("Вы уже не находитесь не в каком меню")
-    else:
-        await message.answer("Вы вышли из текущего меню")
-    await state.set_state(None)
 
 
 @router.message(F.text == "Добавить место")
@@ -171,14 +138,12 @@ async def answer_form_result(
                 f"Ваша оценка месту: {data["score"]}",
             )
         )
-        await message.answer(
-            answer, reply_markup=get_keyboard(message.from_user.username)
-        )
+        await message.answer(answer, reply_markup=keyboard)
     except UniqueConstraintError as e:
         print(e.message)
         await message.answer(
             "Вы уже добавляли это место",
-            reply_markup=get_keyboard(message.from_user.username),
+            reply_markup=keyboard,
         )
 
 
