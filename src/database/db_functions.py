@@ -163,6 +163,10 @@ async def is_manager(session: AsyncSession, id: int) -> bool:
     return result.scalar_one() >= 2
 
 
+async def get_user_rights(session: AsyncSession, id: int)->int:
+    result = await session.execute(statement=select(User.rights).where(User.id == id))
+    return result.scalar_one()
+
 async def is_admin(session: AsyncSession, id: int) -> bool:
     result = await session.execute(statement=select(User.rights).where(User.id == id))
     return result.scalar_one() == 3
