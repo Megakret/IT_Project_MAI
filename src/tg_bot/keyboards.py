@@ -188,3 +188,17 @@ def generate_page_kb(page: int, postfix: str) -> InlineKeyboardMarkup:
         ]
     )
     return page_select_kb
+
+
+async def get_user_keyboard(session: AsyncSession, id: int) -> ReplyKeyboardMarkup:
+    try:
+        right: int = await get_user_rights(session, id)
+        match right:
+            case 3:
+                return starter_admin_kb
+            case 2:
+                return starter_manager_kb
+            case 1:
+                return starter_kb
+    except NoResultFound as e:
+        raise UserNotFound("While getting user's rights he was not found.")

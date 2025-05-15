@@ -149,5 +149,6 @@ async def banned_without_deletion(call: CallbackQuery, state: FSMContext):
     await state.set_state(AdminFSM.user_manipulation_state)
     await call.answer()
 
-@router.message(F.text == "Разбанить пользователя", AdminFSM.user_manipulation_state)
-async def unban
+
+# @router.message(F.text == "Разбанить пользователя", AdminFSM.user_manipulation_state)
+# async def unban

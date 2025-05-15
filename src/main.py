@@ -2,6 +2,7 @@ import dotenv
 import asyncio
 from os import getenv
 from aiogram import Bot, Dispatcher, Router
+from sqlalchemy.ext.asyncio import async_sessionmaker
 from database.db_functions import init_database
 from tg_bot.middlewares.DatabaseConnectionMiddleware import DatabaseConnectionMiddleware
 from tg_bot.routers.add_place_handler import router as add_place_router
@@ -15,35 +16,43 @@ from tg_bot.routers.manager_ui.manager_channel import router as manager_router_c
 from tg_bot.routers.admin_ui.admin import router as admin_router
 from tg_bot.routers.admin_ui.admin_manager_rights import router as admin_manager_router
 from tg_bot.routers.admin_ui.admin_user_control import router as admin_control_router
+from tg_bot.routers.manager_ui.manager_add_place_handlers import (
+    router as manager_add_place_router,
+)
 from tg_bot.routers.get_places_by_tag_handler import router as get_places_by_tag_router
 from tg_bot.routers.command_router import router as command_router
+from tg_bot.routers.start_handler import router as start_router
 from tg_bot.ui_components.TagSelector import generate_tag_handlers
-from tg_bot.routers.role_model_fsm.admin_fsm import *
-from tg_bot.routers.role_model_fsm.manager_fsm import *
 
 
 async def main() -> None:
     bot = Bot(getenv("BOT_TOKEN").replace(r"\x3a", ":"))
     session_maker = init_database()
     dp = Dispatcher()
+    user_commands_router = Router()
     dp.update.middleware(DatabaseConnectionMiddleware(session_maker))
-    dp.include_router(add_place_router)
-    dp.include_router(place_list_router)
-    dp.include_router(user_place_list_router)
-    dp.include_router(get_place_info_router)
-    dp.include_router(gpt_router)
-    dp.include_router(channel_router)
+    attach_user_command_routers(user_commands_router, session_maker)
+    dp.include_router(start_router)
     dp.include_router(manager_router)
     dp.include_router(manager_router_channel)
-    dp.include_router(admin_router)
-    dp.include_router(admin_manager_router)
-    dp.include_router(admin_control_router)
-    dp.include_router(get_places_by_tag_router)
-    dp.include_router(command_router)
+    dp.include_router(manager_add_place_router)
+    dp.include_router(user_commands_router)
+    await dp.start_polling(bot)
+
+
+def attach_user_command_routers(router: Router, session_maker: async_sessionmaker):
+    router.include_router(add_place_router)
+    router.include_router(place_list_router)
+    router.include_router(user_place_list_router)
+    router.include_router(get_place_info_router)
+    router.include_router(gpt_router)
+    router.include_router(channel_router)
+    router.include_router(get_places_by_tag_router)
+    router.include_router(command_router)
     generate_tag_handlers(get_places_by_tag_router)
     generate_tag_handlers(add_place_router)
-    print(AdminFSM.start_state == ManagerFSM.start_state)
-    await dp.start_polling(bot)
+    router.message.middleware(UserExistenceCheckMiddleware(session_maker))
+    router.callback_query.middleware(UserExistenceCheckMiddleware(session_maker))
 
 
 if __name__ == "__main__":

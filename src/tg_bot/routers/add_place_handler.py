@@ -14,6 +14,9 @@ from tg_bot.keyboards import (
     starter_kb,
     insert_place_tags_kb,
     INSERT_PLACE_TAGS_TAG,
+    starter_admin_kb,
+    starter_manager_kb,
+    starter_kb,
 )
 from tg_bot.aiogram_coros import message_sender_wrap, custom_clear
 from tg_bot.ui_components.GeosuggestSelector import (
@@ -28,6 +31,7 @@ from tg_bot.ui_components.TagSelector import (
     TAG_DATA_KEY,
 )
 from tg_bot.tg_exceptions import NoTextMessageException, ScoreOutOfRange
+from tg_bot.filters.role_model_filters import IsAdmin, IsManager
 import database.db_functions as db
 from database.db_exceptions import UniqueConstraintError, ConstraintError
 from database.db_exceptions import UniqueConstraintError
@@ -99,11 +103,33 @@ async def check_place(message: Message, state: FSMContext):
     await geosuggest_selector.show_suggestions(message, state)
 
 
-@router.callback_query(F.data.contains(KEYBOARD_PREFIX), NewPlaceFSM.choose_place)
+# manager variation
+@router.callback_query(
+    F.data.contains(KEYBOARD_PREFIX), NewPlaceFSM.choose_place, IsManager()
+)
 async def choose_suggested_place(callback: CallbackQuery, state: FSMContext):
     await geosuggest_selector.selected_place(callback, state)
     await callback.message.answer("Введите свое описание места")
     await state.set_state(NewPlaceFSM.enter_description)
+
+
+# user variation
+@router.callback_query(F.data.contains(KEYBOARD_PREFIX), NewPlaceFSM.choose_place)
+async def choose_suggested_place(
+    callback: CallbackQuery, state: FSMContext, session: AsyncSession
+):
+    await geosuggest_selector.selected_place(callback, state)
+    data = await state.get_data()
+    place: Place = data["place"]
+    place_exists: bool = await db.is_existing_place(session, place.get_info())
+    if place_exists:
+        await callback.message.answer("Дайте оценку месту от 1 до 10")
+        await state.set_state(NewPlaceFSM.enter_score)
+    else:
+        await callback.message.answer(
+            "Этого места еще нет в базе. Дождитесь добавления запросов к менеджеру)))"
+        )
+        await state.set_state(None)
 
 
 @router.message(NewPlaceFSM.enter_description)
