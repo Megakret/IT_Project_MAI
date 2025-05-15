@@ -79,6 +79,23 @@ async def enter_place_handler(message: Message, state: FSMContext):
     await geosuggest_selector.show_suggestions(message, state)
 
 
+async def generate_place_answer(
+    session: AsyncSession, db_place: db.Place, score: int | None, user_id: int
+) -> str:
+    user_rights: int = await db.get_user_rights(session, user_id)
+    answer = ""
+    if user_rights > 1:
+        answer += f"Айди места: {db_place.id}\n"
+    if score is None:
+        return answer + (
+            f"{db_place.name}\n{db_place.address}\n{db_place.desc}\nВы пока не оценили это место"
+        )
+    else:
+        return answer + (
+            f"{db_place.name}\n{db_place.address}\n{db_place.desc}\nВаша оценка месту: {score}"
+        )
+
+
 @router.callback_query(F.data.contains(KEYBOARD_PREFIX), GetPlaceStates.choose_place)
 async def find_place_handler(
     callback: CallbackQuery, state: FSMContext, session: AsyncSession
@@ -89,17 +106,13 @@ async def find_place_handler(
     try:
         db_res = await db.get_place_with_score(session, place.get_info())
         db_place: db.Place = db_res[0]
-        score: int = db_res[1]
-        if score is None:
-            await callback.message.answer(
-                f"{db_place.name}\n{db_place.address}\n{db_place.desc}\nВы пока не оценили это место",
-                reply_markup=show_comments_keyboard,
-            )
-        else:
-            await callback.message.answer(
-                f"{db_place.name}\n{db_place.address}\n{db_place.desc}\nВаша оценка месту: {score}",
-                reply_markup=show_comments_keyboard,
-            )
+        score: int | None = db_res[1]
+        await callback.message.answer(
+            await generate_place_answer(
+                session, db_place, score, callback.from_user.id
+            ),
+            reply_markup=show_comments_keyboard,
+        )
     except NoResultFound:
         await callback.message.answer(
             "Этого места еще нет в базе, но вы можете его добавить с помощью команды /add_place"

@@ -85,6 +85,29 @@ async def enter_description(message: Message, state: FSMContext):
     await state.set_state(NewPlaceFSM.enter_score)
 
 
+async def generate_final_answer(
+    session: AsyncSession, database_place: db.Place, user_id: int, score: int
+) -> str:
+    rights_level: int = await db.get_user_rights(session, user_id)
+    if rights_level > 1:
+        return "\n".join(
+            (
+                f"Айди места: {database_place.id}",
+                f"Данные о месте: {database_place.name}\n{database_place.address}",
+                f"Ваше описание: {database_place.desc}",
+                f"Ваша оценка месту: {score}",
+            )
+        )
+    else:
+        return "\n".join(
+            (
+                f"Данные о месте: {database_place.name}\n{database_place.address}",
+                f"Ваше описание: {database_place.desc}",
+                f"Ваша оценка месту: {score}",
+            )
+        )
+
+
 async def answer_form_result(
     message: Message, state: FSMContext, session: AsyncSession, comment: str
 ):
@@ -92,30 +115,26 @@ async def answer_form_result(
     place: Place = data["place"]
     tags: list[str] = data.get(TAG_DATA_KEY, None)
     keyboard = get_user_keyboard(session, message.from_user.id)
+    address: str = place.get_info()
     try:
-        does_place_exist: bool = await db.is_existing_place(session, place.get_info())
+        does_place_exist: bool = await db.is_existing_place(session, address)
         if not does_place_exist:
-            await db.add_place(
-                session, place.get_name(), place.get_info(), data["description"]
-            )
+            await db.add_place(session, place.get_name(), address, data["description"])
         if tags is not None:
-            await db.add_place_tags(session, place.get_info(), tuple(tags))
+            await db.add_place_tags(session, address, tuple(tags))
     except UniqueConstraintError as e:
         print("Already existing place has been tried to add to global list")
         print(e.message)
     try:
-        await db.add_user_place(
-            session, message.from_user.id, place.get_info(), data["score"]
+        await db.add_user_place(session, message.from_user.id, address, data["score"])
+        await db.add_comment(session, message.from_user.id, address, comment)
+        database_place: db.Place = await db.get_place_with_score(session, address)
+        await message.answer(
+            generate_final_answer(
+                session, database_place, message.from_user.id, data["score"]
+            ),
+            reply_markup=keyboard,
         )
-        await db.add_comment(session, message.from_user.id, place.get_info(), comment)
-        answer: str = "\n".join(
-            (
-                f"Данные о месте: {place.get_name()}\n{place.get_info()}",
-                f"Ваше описание: {data["description"]}",
-                f"Ваша оценка месту: {data["score"]}",
-            )
-        )
-        await message.answer(answer, reply_markup=keyboard)
     except UniqueConstraintError as e:
         print(e.message)
         await message.answer(
