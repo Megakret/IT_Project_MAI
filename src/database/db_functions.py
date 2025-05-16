@@ -280,8 +280,8 @@ async def is_existing_user_place(session: AsyncSession, address: str, user_id: i
     return is_existing.scalar_one()
 
 
-async def remove_place(session: AsyncSession, address: str) -> None:
-    await session.execute(statement=delete(Place).where(Place.address == address))
+async def remove_place(session: AsyncSession, place_id: int) -> None:
+    await session.execute(statement=delete(Place).where(Place.id == place_id))
 
 
 async def add_place_tag(session: AsyncSession, address: str, place_tag: str) -> None:
@@ -445,8 +445,6 @@ async def add_comment(
         await session.commit()
 
 
-# TODO: I need username which starts with @, not plain integer user id
-# returns <username with @, comment, score>
 async def get_place_comments(
     session: AsyncSession, page: int, comments_per_page: int, address: str
 ) -> list[tuple[str, str, int]]:

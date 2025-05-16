@@ -137,7 +137,7 @@ place_kb = ReplyKeyboardMarkup(
             KeyboardButton(text="Найти место"),
         ],
         [KeyboardButton(text="Помощь"), KeyboardButton(text="Назад")],
-    ],resize_keyboard=True
+    ],
 )
 yes_no_kb = ReplyKeyboardMarkup(
     keyboard=[
@@ -147,7 +147,20 @@ yes_no_kb = ReplyKeyboardMarkup(
         ]
     ],resize_keyboard=True
 )
-place_manager_kb = ReplyKeyboardMarkup(keyboard=[])
+place_manager_kb = ReplyKeyboardMarkup(keyboard=[
+    [
+        KeyboardButton(text="Добавить место"),
+        KeyboardButton(text="Редактировать место"),
+        KeyboardButton(text="Удалить место"),
+    ],
+    [
+        KeyboardButton(text="Найти место"),
+        KeyboardButton(text="Помощь"),
+    ],
+    [
+        KeyboardButton(text="Назад")
+    ]
+], resize_keyboard=True)
 
 
 def generate_page_kb(page: int, postfix: str) -> InlineKeyboardMarkup:

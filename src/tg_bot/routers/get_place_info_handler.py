@@ -74,7 +74,7 @@ async def get_place_handler(message: Message, state: FSMContext):
     await state.set_state(GetPlaceStates.enter_place)
 
 
-@router.message(GetPlaceStates.enter_place)
+@router.message(GetPlaceStates.enter_place, F.text)
 async def enter_place_handler(message: Message, state: FSMContext):
     await geosuggest_selector.show_suggestions(message, state)
 

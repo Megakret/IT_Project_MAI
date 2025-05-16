@@ -16,8 +16,8 @@ geosuggest_selector = GeosuggestSelector(ManagerAddPlaceFSM.choose_place)
 tag_selector = TagSelector(selecting_state=ManagerAddPlaceFSM.selecting_tags, router=router)
 
 
-@router.message(F.text == "Добавить место", ManagerAddPlaceFSM.start_state)
-@router.message(Command("add_place"), ManagerAddPlaceFSM.start_state)
+@router.message(F.text == "Добавить место", ManagerAddPlaceFSM.place_state)
+@router.message(Command("add_place"), ManagerAddPlaceFSM.place_state)
 async def add_place_handler(message: Message, state: FSMContext) -> None:
     await add_place_funcs.add_place_handler(message, state)
     await state.set_state(ManagerAddPlaceFSM.enter_place)
