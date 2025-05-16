@@ -137,9 +137,16 @@ place_kb = ReplyKeyboardMarkup(
             KeyboardButton(text="Найти место"),
         ],
         [KeyboardButton(text="Помощь"), KeyboardButton(text="Назад")],
-    ]
+    ],resize_keyboard=True
 )
-
+yes_no_kb = ReplyKeyboardMarkup(
+    keyboard=[
+        [
+            KeyboardButton(text="Да"),
+            KeyboardButton(text="Нет"),
+        ]
+    ],resize_keyboard=True
+)
 place_manager_kb = ReplyKeyboardMarkup(keyboard=[])
 
 

@@ -14,16 +14,20 @@ from tg_bot.keyboards import (
     SHOW_PLACES_BY_TAG,
     show_places_by_tag_kb,
 )
-from tg_bot.ui_components.TagSelector import (
-    TAGS,
-    TAG_DATA_KEY,
-    SelectTagsStates,
-    show_tag_menu,
-)
+from tg_bot.ui_components.TagSelector import TAGS, TAG_DATA_KEY, TagSelector
 
 router = Router()
 POSTFIX = "places_by_tag"
 PLACES_PER_PAGE = 4
+
+
+class GetPlaceByTagFSM(StatesGroup):
+    selecting_tag = State()
+
+
+tag_selector = TagSelector(
+    selecting_state=GetPlaceByTagFSM.selecting_tag, router=router
+)
 
 
 class NoTagException(Exception):
@@ -48,7 +52,7 @@ paginator_service = PaginatorService(
 @router.message(F.text == "Найти место по тегу")
 @router.message(Command("get_places_by_tag"))
 async def show_tag_menu_handler(message: Message, state: FSMContext):
-    await show_tag_menu(
+    await tag_selector.show_tag_menu(
         message,
         state,
         keyboard=show_places_by_tag_kb,
@@ -56,7 +60,7 @@ async def show_tag_menu_handler(message: Message, state: FSMContext):
     )
 
 
-@router.callback_query(F.data == SHOW_PLACES_BY_TAG, SelectTagsStates.selecting_tag)
+@router.callback_query(F.data == SHOW_PLACES_BY_TAG, GetPlaceByTagFSM.selecting_tag)
 async def show_places(
     callback: CallbackQuery, state: FSMContext, session: AsyncSession
 ):

@@ -20,7 +20,6 @@ from tg_bot.routers.manager_ui.manager_add_place_handlers import (
 from tg_bot.routers.get_places_by_tag_handler import router as get_places_by_tag_router
 from tg_bot.routers.command_router import router as command_router
 from tg_bot.routers.start_handler import router as start_router
-from tg_bot.ui_components.TagSelector import generate_tag_handlers
 
 
 async def main() -> None:
@@ -29,12 +28,13 @@ async def main() -> None:
     dp = Dispatcher()
     user_commands_router = Router()
     dp.update.middleware(DatabaseConnectionMiddleware(session_maker))
-    attach_user_command_routers(user_commands_router, session_maker)
     dp.include_router(start_router)
+    attach_user_command_routers(user_commands_router, session_maker)
     dp.include_router(manager_router)
     dp.include_router(manager_router_channel)
     dp.include_router(manager_add_place_router)
     dp.include_router(user_commands_router)
+    dp.include_router(command_router)
     await dp.start_polling(bot)
 
 
@@ -46,9 +46,6 @@ def attach_user_command_routers(router: Router, session_maker: async_sessionmake
     router.include_router(gpt_router)
     router.include_router(channel_router)
     router.include_router(get_places_by_tag_router)
-    router.include_router(command_router)
-    generate_tag_handlers(get_places_by_tag_router)
-    generate_tag_handlers(add_place_router)
     router.message.middleware(UserExistenceCheckMiddleware(session_maker))
     router.callback_query.middleware(UserExistenceCheckMiddleware(session_maker))
 

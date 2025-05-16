@@ -10,18 +10,18 @@ from api.geosuggest.place import Place
 from tg_bot.keyboards import (
     get_user_keyboard,
     insert_place_tags_kb,
+    yes_no_kb,
     INSERT_PLACE_TAGS_TAG,
     starter_admin_kb,
     starter_manager_kb,
-    starter_kb
+    starter_kb,
 )
 from tg_bot.ui_components.GeosuggestSelector import (
     GeosuggestSelector,
     KEYBOARD_PREFIX,
 )
 from tg_bot.ui_components.TagSelector import (
-    SelectTagsStates,
-    show_tag_menu,
+    TagSelector,
     TAG_DATA_KEY,
 )
 from tg_bot.tg_exceptions import NoTextMessageException, ScoreOutOfRange
@@ -33,10 +33,14 @@ from database.db_exceptions import UniqueConstraintError
 class NewPlaceFSM(StatesGroup):
     enter_place = State()
     choose_place = State()
+    want_to_add_to_database = State()
+    want_to_add_review = State()
     enter_description = State()
     enter_score = State()
     enter_comment = State()
-    enter_tags = State()
+    select_tags = State()
+
+
 # temp start
 managers = {"NoyerXoper", "megakret"}
 admins = set()
@@ -66,6 +70,7 @@ def get_keyboard(user: str):
 router = Router()
 
 geosuggest_selector = GeosuggestSelector(NewPlaceFSM.choose_place)
+tag_selector = TagSelector(selecting_state=NewPlaceFSM.select_tags, router=router)
 
 
 @router.message(F.text == "Добавить место")
@@ -77,96 +82,198 @@ async def geosuggest_test(message: Message, state: FSMContext) -> None:
     await state.set_state(NewPlaceFSM.enter_place)
 
 
-@router.message(NewPlaceFSM.enter_place)
-async def check_place(message: Message, state: FSMContext):
+@router.message(NewPlaceFSM.enter_place, F.text)
+async def show_suggestions(message: Message, state: FSMContext):
     await geosuggest_selector.show_suggestions(message, state)
 
 
-# manager variation
-@router.callback_query(
-    F.data.contains(KEYBOARD_PREFIX), NewPlaceFSM.choose_place, IsManager()
-)
-async def choose_suggested_place(callback: CallbackQuery, state: FSMContext):
-    await geosuggest_selector.selected_place(callback, state)
-    await callback.message.answer("Введите свое описание места")
-    await state.set_state(NewPlaceFSM.enter_description)
-
-
-# user variation
 @router.callback_query(F.data.contains(KEYBOARD_PREFIX), NewPlaceFSM.choose_place)
-async def choose_suggested_place(
+async def check_place_existence_handler(
     callback: CallbackQuery, state: FSMContext, session: AsyncSession
 ):
     await geosuggest_selector.selected_place(callback, state)
     data = await state.get_data()
     place: Place = data["place"]
-    place_exists: bool = await db.is_existing_place(session, place.get_info())
-    if place_exists:
-        await callback.message.answer("Дайте оценку месту от 1 до 10")
-        await state.set_state(NewPlaceFSM.enter_score)
+    place_exists_in_base: bool = await db.is_existing_place(session, place.get_info())
+    place_added_by_user: bool = await db.is_existing_user_place(
+        session, place.get_info(), callback.from_user.id
+    )
+    if place_added_by_user:
+        await callback.message.answer("Вы уже добавляли это место")
+        await state.set_state(None)
+    elif place_exists_in_base:
+        await callback.message.answer(
+            "Хотите оставить отзыв на место?", reply_markup=yes_no_kb
+        )
+        await state.set_state(NewPlaceFSM.want_to_add_review)
     else:
         await callback.message.answer(
-            "Этого места еще нет в базе. Дождитесь добавления запросов к менеджеру)))"
+            "Этого места еще нет в нашей базе мест. Хотите отправить запрос менеджеру на его добавление?",
+            reply_markup=yes_no_kb,
         )
-        await state.set_state(None)
+        await state.set_state(NewPlaceFSM.want_to_add_to_database)
+
+
+@router.message(F.text == "Да", NewPlaceFSM.want_to_add_to_database)
+async def user_wants_to_add_desc_handler(message: Message, state: FSMContext):
+    await message.answer(
+        "Отлично. Введите описание места.", reply_markup=ReplyKeyboardRemove()
+    )
+    await state.set_state(NewPlaceFSM.enter_description)
+
+
+@router.message(NewPlaceFSM.want_to_add_to_database, F.text == "Нет")
+async def user_dont_want_to_add_desc_handler(
+    message: Message, state: FSMContext, session: AsyncSession
+):
+    await state.set_state(None)
+    await message.answer(
+        "Место не было добавлено в ваш список",
+        reply_markup=await get_user_keyboard(session, message.from_user.id),
+    )
 
 
 @router.message(NewPlaceFSM.enter_description)
-async def enter_description(message: Message, state: FSMContext):
+async def enter_description_handler(message: Message, state: FSMContext):
     description: str = message.text
     await state.update_data(description=description)
-    await message.answer("Дайте оценку месту от 1 до 10")
+    await tag_selector.show_tag_menu(
+        message,
+        state,
+        keyboard=insert_place_tags_kb,
+        start_message="Нажмите на тег /<tag>, чтобы добавить его к месту\n",
+    )
+
+
+# for now it just adds place. easy to fix when db will be ready
+@router.callback_query(NewPlaceFSM.select_tags, F.data == INSERT_PLACE_TAGS_TAG)
+async def add_request_to_manager(
+    callback: CallbackQuery, state: FSMContext, session: AsyncSession
+):
+    data = await state.get_data()
+    try:
+        place: Place = data["place"]
+        tags: list[str] = data[TAG_DATA_KEY]
+        await db.add_place(
+            session, place.get_name(), place.get_info(), data["description"]
+        )
+        await db.add_place_tags(session, place.get_name(), tags)
+        await callback.answer("Место успешно добавлено")
+        await callback.message.answer(
+            "Хотите добавить отзыв на место?", reply_markup=yes_no_kb
+        )
+        await state.set_state(NewPlaceFSM.want_to_add_review)
+    except KeyError:
+        await state.clear()
+        await callback.answer("Что-то пошло не так, попробуйте ввести команду снова")
+    except UniqueConstraintError as e:
+        print(e.message)
+        await state.set_state(None)
+        await callback.answer(
+            "Извините, похоже, пока вы добавляли место, кто-то другой добавил его быстрее вас."
+        )
+
+
+@router.message(NewPlaceFSM.want_to_add_review, F.text == "Да")
+async def want_to_add_review_handler(message: Message, state: FSMContext):
+    await message.answer(
+        "Введите свою оценку месту от 1 до 10.", reply_markup=ReplyKeyboardRemove()
+    )
     await state.set_state(NewPlaceFSM.enter_score)
 
 
+@router.message(NewPlaceFSM.enter_score, F.text)
+async def enter_score_handler(message: Message, state: FSMContext):
+    try:
+        score: int = int(message.text)
+        if not (1 <= score <= 10):
+            raise ScoreOutOfRange
+        await state.update_data(score=score)
+        await state.set_state(NewPlaceFSM.enter_comment)
+        await message.answer("Напишите комментарий для своего отзыва")
+    except ValueError:
+        await message.answer("Вы ввели не число, либо дробное число!")
+    except ScoreOutOfRange:
+        await message.answer("Вы должны ввести оценку от 1 до 10!")
+
+
+@router.message(NewPlaceFSM.enter_comment, F.text)
+async def enter_comment_handler(
+    message: Message, state: FSMContext, session: AsyncSession
+):
+    comment: str = message.text
+    await state.update_data(comment=comment)
+    await add_user_place_with_feedback(message, state, session, message.from_user.id)
+
+
+@router.message(NewPlaceFSM.enter_comment)
+async def wrong_comment_handler(message: Message):
+    await message.answer("Вы можете оставить только текстовый комментарий.")
+
+
+@router.message(NewPlaceFSM.want_to_add_review, F.text == "Нет")
+async def dont_want_to_add_review_handler(
+    message: Message, session: AsyncSession, state: FSMContext
+):
+    await add_user_place_with_feedback(message, state, session, message.from_user.id)
+
+
 async def generate_final_answer(
-    session: AsyncSession, database_place: db.Place, user_id: int, score: int
+    session: AsyncSession, database_place: db.Place, user_id: int, score: int | None
 ) -> str:
     rights_level: int = await db.get_user_rights(session, user_id)
     if rights_level > 1:
+        if score is None:
+            return "\n".join(
+                (
+                    f"Айди места: {database_place.id}",
+                    f"Данные о месте: {database_place.name}\n{database_place.address}",
+                    f"Описание места: {database_place.desc}",
+                )
+            )
+
         return "\n".join(
             (
                 f"Айди места: {database_place.id}",
                 f"Данные о месте: {database_place.name}\n{database_place.address}",
-                f"Ваше описание: {database_place.desc}",
+                f"Описание места: {database_place.desc}",
                 f"Ваша оценка месту: {score}",
             )
         )
     else:
+        if score is None:
+            return "\n".join(
+                (
+                    f"Данные о месте: {database_place.name}\n{database_place.address}",
+                    f"Описание места: {database_place.desc}",
+                )
+            )
         return "\n".join(
             (
                 f"Данные о месте: {database_place.name}\n{database_place.address}",
-                f"Ваше описание: {database_place.desc}",
+                f"Описание места: {database_place.desc}",
                 f"Ваша оценка месту: {score}",
             )
         )
 
 
-async def answer_form_result(
-    message: Message, state: FSMContext, session: AsyncSession, comment: str
+async def add_user_place_with_feedback(
+    message: Message,
+    state: FSMContext,
+    session: AsyncSession,
+    user_id: int,
 ):
     data = await state.get_data()
     place: Place = data["place"]
-    tags: list[str] = data.get(TAG_DATA_KEY, None)
-    keyboard = get_user_keyboard(session, message.from_user.id)
+    keyboard = await get_user_keyboard(session, message.from_user.id)
     address: str = place.get_info()
+    comment: str | None = data.get("comment", None)
+    score: int | None = data.get("score", None)
     try:
-        does_place_exist: bool = await db.is_existing_place(session, address)
-        if not does_place_exist:
-            await db.add_place(session, place.get_name(), address, data["description"])
-        if tags is not None:
-            await db.add_place_tags(session, address, tuple(tags))
-    except UniqueConstraintError as e:
-        print("Already existing place has been tried to add to global list")
-        print(e.message)
-    try:
-        await db.add_user_place(session, message.from_user.id, address, data["score"])
-        await db.add_comment(session, message.from_user.id, address, comment)
-        database_place: db.Place = await db.get_place_with_score(session, address)
+        await db.add_user_place(session, user_id, address, score, comment)
+        database_place: db.Place = (await db.get_place_with_score(session, address))[0]
         await message.answer(
-            generate_final_answer(
-                session, database_place, message.from_user.id, data["score"]
-            ),
+            await generate_final_answer(session, database_place, user_id, score),
             reply_markup=keyboard,
         )
     except UniqueConstraintError as e:
@@ -175,45 +282,7 @@ async def answer_form_result(
             "Вы уже добавляли это место",
             reply_markup=keyboard,
         )
-
-
-@router.message(NewPlaceFSM.enter_score)
-async def enter_score(message: Message, state: FSMContext):
-    try:
-        score: int = int(message.text)
-        if not (1 <= score <= 10):
-            raise ScoreOutOfRange()
-        await state.update_data(score=score)
-        await message.answer("Добавьте теги к месту")
-        await show_tag_menu(
-            message,
-            state,
-            keyboard=insert_place_tags_kb,
-            start_message="Нажмите на тег /<tag>, чтобы добавить его к месту\n",
-        )
-        await state.set_state(SelectTagsStates.selecting_tag)
-    except ValueError:
-        await message.answer("Введите число!")
-    except ScoreOutOfRange:
-        await message.answer("Введите число от 1 до 10")
-
-
-@router.message(NewPlaceFSM.enter_comment)
-async def enter_comment(message: Message, state: FSMContext, session: AsyncSession):
-    try:
-        comment: str = message.text
-        if comment == "":
-            raise NoTextMessageException
-        await answer_form_result(message, state, session, comment)
-    except NoTextMessageException:
-        await message.answer("Наши комментарии поддерживают только текст")
-
-
-@router.callback_query(F.data == INSERT_PLACE_TAGS_TAG, SelectTagsStates.selecting_tag)
-async def insert_tags(callback: CallbackQuery, state: FSMContext):
-    await callback.message.answer("Оставьте комментарий о месте")
-    await state.set_state(NewPlaceFSM.enter_comment)
-    await callback.answer()
+    await state.set_state(None)
 
 
 @router.message(Command("fun"))

@@ -18,4 +18,4 @@ class ManagerAddPlaceFSM(ManagerFSM):
     enter_description = State()
     enter_score = State()
     enter_comment = State()
-    enter_tags = State()
+    selecting_tags = State()

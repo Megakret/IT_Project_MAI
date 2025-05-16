@@ -6,15 +6,14 @@ from aiogram.fsm.context import FSMContext
 from sqlalchemy.ext.asyncio import AsyncSession
 from tg_bot.routers.role_model_fsm.manager_fsm import ManagerAddPlaceFSM
 from tg_bot.ui_components.GeosuggestSelector import KEYBOARD_PREFIX, GeosuggestSelector
-from tg_bot.ui_components.TagSelector import (
-    SelectTagsStates,
-)
+from tg_bot.ui_components.TagSelector import TagSelector
 from tg_bot.keyboards import (
     INSERT_PLACE_TAGS_TAG,
 )
 
 router = Router()
 geosuggest_selector = GeosuggestSelector(ManagerAddPlaceFSM.choose_place)
+tag_selector = TagSelector(selecting_state=ManagerAddPlaceFSM.selecting_tags, router=router)
 
 
 @router.message(F.text == "Добавить место", ManagerAddPlaceFSM.start_state)
@@ -40,11 +39,12 @@ async def choose_suggested_place(callback: CallbackQuery, state: FSMContext):
 
 @router.message(ManagerAddPlaceFSM.enter_description)
 async def get_description(message: Message, state: FSMContext):
-    await add_place_funcs.get_description(message, state)
-    await state.set_state(SelectTagsStates.selecting_tag)
+    await add_place_funcs.get_description(message, state, tag_selector)
 
 
-@router.callback_query(F.data == INSERT_PLACE_TAGS_TAG, SelectTagsStates.selecting_tag)
+@router.callback_query(
+    F.data == INSERT_PLACE_TAGS_TAG, ManagerAddPlaceFSM.selecting_tags
+)
 async def insert_tags(
     callback: CallbackQuery, state: FSMContext, session: AsyncSession
 ):

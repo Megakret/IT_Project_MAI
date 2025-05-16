@@ -18,9 +18,9 @@ TAGS = {
 TAG_DATA_KEY = "tag_list"
 
 
-class SelectTagsStates(StatesGroup):
-    selecting_tag = State()
-    tag_select_finished = State()
+# class SelectTagsStates(StatesGroup):
+#     selecting_tag = State()
+#     tag_select_finished = State()
 
 
 def tag_handler_wrapper(tag: str) -> Coroutine:
@@ -35,22 +35,26 @@ def tag_handler_wrapper(tag: str) -> Coroutine:
     return routine
 
 
-def generate_tag_handlers(router: Router) -> None:  # activate in main
-    for key in TAGS:
-        router.message.register(
-            tag_handler_wrapper(key), Command(key), SelectTagsStates.selecting_tag
-        )
+class TagSelector:
+    def __init__(self, selecting_state: State, router: Router):
+        self._selecting_state = selecting_state
+        self._generate_tag_handlers(router)
 
+    def _generate_tag_handlers(self, router: Router) -> None:
+        for key in TAGS:
+            router.message.register(
+                tag_handler_wrapper(key), Command(key), self._selecting_state
+            )
 
-# @router.message(Command("get_places_by_tag"))
-async def show_tag_menu(
-    message: Message,
-    state: FSMContext,
-    keyboard: InlineKeyboardMarkup | None = None,
-    start_message: str = "Нажмите на тег </tag>, чтобы найти по нему места: \n",
-):
-    formed_message: str = start_message
-    formed_message += "\n".join(map(lambda x: f"/{x} - {TAGS[x]}", TAGS))
-    await state.set_state(SelectTagsStates.selecting_tag)
-    await state.update_data(**{TAG_DATA_KEY: []})
-    await message.answer(formed_message, reply_markup=keyboard)
+    async def show_tag_menu(
+        self,
+        message: Message,
+        state_machine: FSMContext,
+        keyboard: InlineKeyboardMarkup | None = None,
+        start_message: str = "Нажмите на тег </tag>, чтобы найти по нему места: \n",
+    ):
+        formed_message: str = start_message
+        formed_message += "\n".join(map(lambda x: f"/{x} - {TAGS[x]}", TAGS))
+        await state_machine.set_state(self._selecting_state)
+        await state_machine.update_data(**{TAG_DATA_KEY: []})
+        await message.answer(formed_message, reply_markup=keyboard)

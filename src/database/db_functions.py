@@ -274,6 +274,12 @@ async def is_existing_place(session: AsyncSession, address: str) -> bool:
     return is_existing.scalar_one()
 
 
+async def is_existing_user_place(session: AsyncSession, address: str, user_id: int)->bool:
+    statement = select(exists().where(UserPlace.fk_place_address == address, UserPlace.fk_user_id == user_id))
+    is_existing = await session.execute(statement)
+    return is_existing.scalar_one()
+
+
 async def remove_place(session: AsyncSession, address: str) -> None:
     await session.execute(statement=delete(Place).where(Place.address == address))
 

@@ -15,8 +15,7 @@ from tg_bot.ui_components.GeosuggestSelector import (
     KEYBOARD_PREFIX,
 )
 from tg_bot.ui_components.TagSelector import (
-    SelectTagsStates,
-    show_tag_menu,
+    TagSelector,
     TAG_DATA_KEY,
 )
 from tg_bot.tg_exceptions import NoTextMessageException, ScoreOutOfRange
@@ -49,11 +48,11 @@ async def choose_suggested_place(
 
 
 # @router.message(NewPlaceFSM.enter_description)
-async def get_description(message: Message, state: FSMContext):
+async def get_description(message: Message, state: FSMContext, tag_selector: TagSelector):
     description: str = message.text
     await state.update_data(description=description)
     await message.answer("Вставьте теги для места")
-    await show_tag_menu(
+    await tag_selector.show_tag_menu(
         message,
         state,
         keyboard=insert_place_tags_kb,
