@@ -56,7 +56,7 @@ async def show_tag_menu_handler(message: Message, state: FSMContext):
         message,
         state,
         keyboard=show_places_by_tag_kb,
-        start_message="Нажмите на тег </tag>, чтобы найти по нему места: \n",
+        start_message="Чтобы выйти из команды, напишите /exit. Нажмите на тег </tag>, чтобы найти по нему места: \n",
     )
 
 

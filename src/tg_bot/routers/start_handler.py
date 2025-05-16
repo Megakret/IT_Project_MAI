@@ -38,12 +38,3 @@ async def handle_cmd_start(
             "Произошла ошибка, вашего аккаунта нет в базе. Попробуйте прописать /start еще раз."
         )
     await state.clear()
-
-
-@router.message(Command("exit"))
-async def exit(message: Message, state: FSMContext) -> None:
-    if await state.get_state() is None:
-        await message.answer("Вы уже не находитесь не в каком меню")
-    else:
-        await message.answer("Вы вышли из текущего меню")
-    await state.set_state(None)

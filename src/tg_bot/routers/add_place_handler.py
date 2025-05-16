@@ -72,12 +72,11 @@ router = Router()
 geosuggest_selector = GeosuggestSelector(NewPlaceFSM.choose_place)
 tag_selector = TagSelector(selecting_state=NewPlaceFSM.select_tags, router=router)
 
-
 @router.message(F.text == "Добавить место")
 @router.message(Command("add_place"))
 async def geosuggest_test(message: Message, state: FSMContext) -> None:
     await message.answer(
-        "Введите место для досуга: ", reply_markup=ReplyKeyboardRemove()
+        "Чтобы выйти из команды, напишите /exit. Введите место для досуга: ", reply_markup=ReplyKeyboardRemove()
     )
     await state.set_state(NewPlaceFSM.enter_place)
 

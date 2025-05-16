@@ -70,7 +70,7 @@ paginator_service = PaginatorService(
 @router.message(Command("get_place"))
 async def get_place_handler(message: Message, state: FSMContext):
     await state.clear()
-    await message.answer("Введите название места")
+    await message.answer("Чтобы выйти из команды, напишите /exit. Введите название места:")
     await state.set_state(GetPlaceStates.enter_place)
 
 
