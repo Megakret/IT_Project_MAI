@@ -12,9 +12,14 @@ from tg_bot.routers.gpt_talk_handlers import router as gpt_router
 from tg_bot.routers.channel_fetch_router import router as channel_router
 from tg_bot.routers.manager_ui.manager import router as manager_router
 from tg_bot.routers.manager_ui.manager_channel import router as manager_router_channel
+from tg_bot.routers.admin_ui.admin import router as admin_router
+from tg_bot.routers.admin_ui.admin_manager_rights import router as admin_manager_router
+from tg_bot.routers.admin_ui.admin_user_control import router as admin_control_router
 from tg_bot.routers.get_places_by_tag_handler import router as get_places_by_tag_router
 from tg_bot.routers.command_router import router as command_router
 from tg_bot.ui_components.TagSelector import generate_tag_handlers
+from tg_bot.routers.role_model_fsm.admin_fsm import *
+from tg_bot.routers.role_model_fsm.manager_fsm import *
 
 
 async def main() -> None:
@@ -30,10 +35,14 @@ async def main() -> None:
     dp.include_router(channel_router)
     dp.include_router(manager_router)
     dp.include_router(manager_router_channel)
+    dp.include_router(admin_router)
+    dp.include_router(admin_manager_router)
+    dp.include_router(admin_control_router)
     dp.include_router(get_places_by_tag_router)
     dp.include_router(command_router)
     generate_tag_handlers(get_places_by_tag_router)
     generate_tag_handlers(add_place_router)
+    print(AdminFSM.start_state == ManagerFSM.start_state)
     await dp.start_polling(bot)
 
 

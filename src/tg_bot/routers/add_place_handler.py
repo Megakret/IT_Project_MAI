@@ -43,30 +43,13 @@ class NewPlaceFSM(StatesGroup):
     enter_tags = State()
 
 
-# temp start
-managers = {"NoyerXoper"}
-admins = set()
-
-
-def get_permisions(user: str) -> int:
-    if user in admins:
-        return 2
-    if user in managers:
-        return 1
-    return 0
-
-
-def get_keyboard(user: str):
-    match get_permisions(user):
-        case 2:
+async def __get_keyboard(session: AsyncSession, user_id: int):
+    match await db.get_permisions(session, user_id):
+        case 3:
             return starter_admin_kb
-        case 1:
+        case 2:
             return starter_manager_kb
-        case _:
-            return starter_kb
-
-
-# temp end
+    return starter_kb
 
 
 router = Router()
@@ -78,21 +61,19 @@ geosuggest_selector = GeosuggestSelector(NewPlaceFSM.choose_place)
 async def handle_cmd_start(
     message: Message, state: FSMContext, session: AsyncSession
 ) -> None:
-    await message.answer(
-        "Привет. Напиши /add_place, чтобы добавить место для досуга",
-        reply_markup=get_keyboard(message.from_user.username),
-    )
     try:
-        await db.add_user(
-            session, message.from_user.id, message.from_user.first_name, "blank"
-        )
+        await db.add_user(session, message.from_user.id, message.from_user.username)
     except UniqueConstraintError as e:
         print(e.message)
     except ConstraintError as e:
         print(e.message)
         pass
     await state.clear()
-    print(await state.get_state())
+    await message.answer(
+        "Привет. Напиши /add_place, чтобы добавить место для досуга",
+        reply_markup=await __get_keyboard(session, message.from_user.id),
+    )
+
 
 @router.message(Command("exit"))
 async def exit(message: Message, state: FSMContext) -> None:
@@ -101,6 +82,7 @@ async def exit(message: Message, state: FSMContext) -> None:
     else:
         await message.answer("Вы вышли из текущего меню")
     await state.set_state(None)
+
 
 @router.message(F.text == "Добавить место")
 @router.message(Command("add_place"))
@@ -162,13 +144,14 @@ async def answer_form_result(
             )
         )
         await message.answer(
-            answer, reply_markup=get_keyboard(message.from_user.username)
+            answer,
+            reply_markup=await __get_keyboard(session, message.from_user.id),
         )
     except UniqueConstraintError as e:
         print(e.message)
         await message.answer(
             "Вы уже добавляли это место",
-            reply_markup=get_keyboard(message.from_user.username),
+            reply_markup=await __get_keyboard(session, message.from_user.id),
         )
     await custom_clear(state)
 

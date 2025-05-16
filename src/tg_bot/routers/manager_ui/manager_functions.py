@@ -6,9 +6,7 @@ from tg_bot.routers.channel_fetch_router import (
     get_channels,
     remove_channel,
 )
-from tg_bot.routers.manager_ui.manager import ManagerFSM
-from tg_bot.routers.role_model_fsm.admin_fsm import *
-from tg_bot.routers.role_model_fsm.manager_fsm import *
+from aiogram.fsm.state import State
 
 
 def check_channel_tag(tag: str) -> bool:

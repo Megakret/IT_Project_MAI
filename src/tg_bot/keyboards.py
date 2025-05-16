@@ -138,6 +138,42 @@ place_kb = ReplyKeyboardMarkup(
 
 place_manager_kb = ReplyKeyboardMarkup(keyboard=[])
 
+user_manipulation_admin_kb = ReplyKeyboardMarkup(
+    keyboard=[
+        [
+            KeyboardButton(text="Список пользователей"),
+            KeyboardButton(text="Список менеджеров"),
+            KeyboardButton(text="Список админов"),
+            KeyboardButton(text="Список забанненых пользователей"),
+        ],
+        [
+            KeyboardButton(text="Забанить пользователя"),
+            KeyboardButton(text="Разбанить пользователя"),
+            KeyboardButton(text="Удалить комментарий(-ии) пользователя"),
+        ],
+        [KeyboardButton(text="Назад")],
+    ]
+)
+
+yes_no_inline = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [
+            InlineKeyboardButton(text="Да", callback_data="yes"),
+            InlineKeyboardButton(text="Нет", callback_data="no"),
+        ]
+    ]
+)
+
+set_role_inline = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [
+            InlineKeyboardButton(text="Пользователь", callback_data="user"),
+            InlineKeyboardButton(text="Менеджер", callback_data="manager"),
+            InlineKeyboardButton(text="Админ", callback_data="admin"),
+        ]
+    ]
+)
+
 
 def generate_page_kb(page: int, postfix: str) -> InlineKeyboardMarkup:
     page_select_kb = InlineKeyboardMarkup(
