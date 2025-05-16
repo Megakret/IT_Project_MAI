@@ -161,7 +161,13 @@ place_manager_kb = ReplyKeyboardMarkup(keyboard=[
         KeyboardButton(text="Назад")
     ]
 ], resize_keyboard=True)
-
+back_kb = ReplyKeyboardMarkup(
+    keyboard=[
+        [
+            KeyboardButton(text="Назад")
+        ]
+    ], resize_keyboard=True
+)
 
 def generate_page_kb(page: int, postfix: str) -> InlineKeyboardMarkup:
     page_select_kb = InlineKeyboardMarkup(

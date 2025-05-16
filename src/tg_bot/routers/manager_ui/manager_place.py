@@ -1,8 +1,8 @@
-from aiogram import Router, F
+from aiogram import Router, F, Bot
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, ReplyKeyboardRemove
-from tg_bot.keyboards import channel_kb
+from tg_bot.keyboards import manager_kb
 from tg_bot.routers.channel_fetch_router import (
     add_channel,
     get_channels,
@@ -42,9 +42,16 @@ async def manage_places(message: Message, state: FSMContext):
     )
 
 
+@router.message(Command("exit"), ManagerFSM.place_state)
+@router.message(F.text == "Назад", ManagerFSM.place_state)
+async def exit_handler(message: Message, state: FSMContext):
+    await message.answer("Вы вышли из меню управления местами", reply_markup=manager_kb)
+    await state.set_state(ManagerFSM.start_state)
+
+
 @router.message(ManagerFSM.place_state, F.text == "Помощь")
 async def show_help(message: Message):
     await message.answer(
-        "Команды редактировать место и удалить место требуют идентификатор (id) места." \
+        "Команды редактировать место и удалить место требуют идентификатор (id) места."
         " Вы сможете получить его с помощью кнопки 'Найти место.'"
     )

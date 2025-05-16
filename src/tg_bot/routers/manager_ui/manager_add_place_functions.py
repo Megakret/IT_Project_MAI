@@ -1,15 +1,10 @@
 from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import State, StatesGroup
-from aiogram.types import ReplyKeyboardRemove
+from aiogram.types import ReplyKeyboardRemove, ReplyKeyboardMarkup
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from api.geosuggest.place import Place
-from tg_bot.keyboards import (
-    get_user_keyboard,
-    insert_place_tags_kb,
-    INSERT_PLACE_TAGS_TAG,
-)
+from tg_bot.keyboards import insert_place_tags_kb, INSERT_PLACE_TAGS_TAG, back_kb
 from tg_bot.ui_components.GeosuggestSelector import (
     GeosuggestSelector,
     KEYBOARD_PREFIX,
@@ -18,7 +13,6 @@ from tg_bot.ui_components.TagSelector import (
     TagSelector,
     TAG_DATA_KEY,
 )
-from tg_bot.tg_exceptions import NoTextMessageException, ScoreOutOfRange
 import database.db_functions as db
 from database.db_exceptions import UniqueConstraintError
 
@@ -27,7 +21,7 @@ from database.db_exceptions import UniqueConstraintError
 # @router.message(Command("add_place"))
 async def add_place_handler(message: Message, state: FSMContext) -> None:
     await message.answer(
-        "Введите место для досуга: ", reply_markup=ReplyKeyboardRemove()
+        "Введите место для досуга: ", reply_markup=back_kb
     )
 
 
@@ -48,7 +42,9 @@ async def choose_suggested_place(
 
 
 # @router.message(NewPlaceFSM.enter_description)
-async def get_description(message: Message, state: FSMContext, tag_selector: TagSelector):
+async def get_description(
+    message: Message, state: FSMContext, tag_selector: TagSelector
+):
     description: str = message.text
     await state.update_data(description=description)
     await message.answer("Вставьте теги для места")
@@ -71,12 +67,14 @@ async def generate_final_answer(database_place: db.Place) -> str:
 
 
 async def answer_form_result(
-    message: Message, state: FSMContext, session: AsyncSession, user_id: int
+    message: Message,
+    state: FSMContext,
+    session: AsyncSession,
+    keyboard: ReplyKeyboardMarkup,
 ):
     data = await state.get_data()
     place: Place = data["place"]
     tags: list[str] = data.get(TAG_DATA_KEY, None)
-    keyboard = await get_user_keyboard(session, user_id)
     address: str = place.get_info()
     try:
         does_place_exist: bool = await db.is_existing_place(session, address)
@@ -103,7 +101,10 @@ async def answer_form_result(
 
 # @router.callback_query(F.data == INSERT_PLACE_TAGS_TAG, SelectTagsStates.selecting_tag)
 async def insert_tags(
-    callback: CallbackQuery, state: FSMContext, session: AsyncSession
+    callback: CallbackQuery,
+    state: FSMContext,
+    session: AsyncSession,
+    end_keyboard: ReplyKeyboardMarkup,
 ):
-    await answer_form_result(callback.message, state, session, callback.from_user.id)
+    await answer_form_result(callback.message, state, session, end_keyboard)
     await callback.answer()
