@@ -8,7 +8,7 @@ from api.geosuggest.place import Place
 
 
 # invoke by command
-async def get_place_function(message: Message):
+async def start_get_place_function(message: Message):
     await message.answer(
         "Чтобы выйти из команды, напишите /exit. Введите название места: "
     )
@@ -37,6 +37,7 @@ async def place_selected_function(
         await callback.message.answer(
             f"Название места: {db_place.name}\nid места: {db_place.id}"
         )
-    except NoResultFound:
+    except NoResultFound as e:
+        print(e)
         await callback.message.answer("Такого места нет в базе")
         await callback.answer()

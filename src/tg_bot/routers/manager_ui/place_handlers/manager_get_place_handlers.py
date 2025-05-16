@@ -15,21 +15,22 @@ geosuggest_selector = GeosuggestSelector(ManagerGetPlaceFSM.choose_place)
 
 @router.message(F.text == "Найти место", ManagerGetPlaceFSM.place_state)
 async def start_handler(message: Message, state: FSMContext):
-    await get_place_funcs.get_place_function(message)
+    await get_place_funcs.start_get_place_function(message)
     await state.set_state(ManagerGetPlaceFSM.enter_place)
 
 
 @router.message(ManagerGetPlaceFSM.enter_place, F.text)
-async def start_geosuggest(message: Message, state: FSMContext):
+async def start_geosuggest_handler(message: Message, state: FSMContext):
     await get_place_funcs.enter_place_function(message, state, geosuggest_selector)
 
 
 @router.callback_query(
     ManagerGetPlaceFSM.choose_place, F.data.contains(KEYBOARD_PREFIX)
 )
-async def start_geosuggest(
+async def output_found_place_handler(
     callback: CallbackQuery, state: FSMContext, session: AsyncSession
 ):
     await get_place_funcs.place_selected_function(
         callback, state, session, geosuggest_selector
     )
+    await state.set_state(ManagerGetPlaceFSM.place_state)

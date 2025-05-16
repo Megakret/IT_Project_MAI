@@ -22,3 +22,7 @@ class ManagerAddPlaceFSM(ManagerFSM):
 class ManagerGetPlaceFSM(ManagerFSM):
     enter_place = State()
     choose_place = State()
+
+
+class ManagerDeletePlaceFSM(ManagerFSM):
+    enter_place_id = State()

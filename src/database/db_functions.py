@@ -282,6 +282,7 @@ async def is_existing_user_place(session: AsyncSession, address: str, user_id: i
 
 async def remove_place(session: AsyncSession, place_id: int) -> None:
     await session.execute(statement=delete(Place).where(Place.id == place_id))
+    await session.commit()
 
 
 async def add_place_tag(session: AsyncSession, address: str, place_tag: str) -> None:
