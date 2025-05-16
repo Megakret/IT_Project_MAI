@@ -20,6 +20,10 @@ from tg_bot.routers.manager_ui.manager_add_place_handlers import (
 from tg_bot.routers.manager_ui.place_handlers.manager_delete_place_handlers import (
     router as delete_place_router,
 )
+from tg_bot.routers.manager_ui.place_handlers.manager_update_place_handlers import (
+    router as update_place_router,
+)
+
 router = Router()
 
 
@@ -27,6 +31,7 @@ def init_manager_place_panel():
     router.include_router(get_place_router)
     router.include_router(add_place_router)
     router.include_router(delete_place_router)
+    router.include_router(update_place_router)
 
 
 @router.message(ManagerFSM.start_state, F.text == "Управление местами")
