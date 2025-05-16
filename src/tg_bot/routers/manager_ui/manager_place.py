@@ -40,3 +40,11 @@ async def manage_places(message: Message, state: FSMContext):
     await message.answer(
         "Вы вошли в режим управления местами.", reply_markup=place_manager_kb
     )
+
+
+@router.message(ManagerFSM.place_state, F.text == "Помощь")
+async def show_help(message: Message):
+    await message.answer(
+        "Команды редактировать место и удалить место требуют идентификатор (id) места." \
+        " Вы сможете получить его с помощью кнопки 'Найти место.'"
+    )
