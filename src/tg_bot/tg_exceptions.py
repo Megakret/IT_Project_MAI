@@ -6,3 +6,6 @@ class ScoreOutOfRange(Exception):
 
 class UserNotFound(Exception):
     pass
+
+class PlaceNotFound(Exception):
+    pass
