@@ -18,7 +18,7 @@ from sqlalchemy.ext.asyncio import (
     AsyncSession,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, NoResultFound
 
 from database.db_exceptions import UniqueConstraintError, ConstraintError
 
@@ -287,6 +287,9 @@ async def is_existing_user_place(session: AsyncSession, address: str, user_id: i
 
 
 async def remove_place(session: AsyncSession, place_id: int) -> None:
+    place_exists: bool = await is_existing_place_by_id(session, place_id)
+    if not place_exists:
+        raise NoResultFound
     await session.execute(statement=delete(Place).where(Place.id == place_id))
     await session.commit()
 

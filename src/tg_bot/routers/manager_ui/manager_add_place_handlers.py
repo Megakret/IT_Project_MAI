@@ -65,4 +65,4 @@ async def insert_tags(
     callback: CallbackQuery, state: FSMContext, session: AsyncSession
 ):
     await add_place_funcs.insert_tags(callback, state, session, place_manager_kb)
-    await state.set_state(ManagerAddPlaceFSM.start_state)
+    await state.set_state(ManagerAddPlaceFSM.place_state)

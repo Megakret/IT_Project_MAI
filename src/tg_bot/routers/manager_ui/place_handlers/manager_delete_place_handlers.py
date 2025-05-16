@@ -36,6 +36,6 @@ async def delete_place_handler(
         await delete_place_funcs.delete_place_function(message, session, place_manager_kb)
         await state.set_state(ManagerDeletePlaceFSM.place_state)
     except PlaceNotFound:
-        pass
+        await state.set_state(ManagerDeletePlaceFSM.place_state)
     except ValueError:
         pass
