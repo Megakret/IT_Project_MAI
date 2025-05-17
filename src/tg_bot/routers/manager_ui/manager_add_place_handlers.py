@@ -43,14 +43,7 @@ async def add_place_handler(message: Message, state: FSMContext) -> None:
 
 @router.message(ManagerAddPlaceFSM.enter_place)
 async def show_suggestions(message: Message, state: FSMContext):
-    try:
-        await add_place_funcs.show_suggestions(message, state, geosuggest_selector)
-    except MessageIsTooLarge as e:
-        print(e)
-        await message.answer(
-            f"В вашем названии слишком много символов: {e.message_size}."
-            f"Максимальное количество символов: {e.max_size}"
-        )
+    await add_place_funcs.show_suggestions(message, state, geosuggest_selector)
 
 
 @router.callback_query(

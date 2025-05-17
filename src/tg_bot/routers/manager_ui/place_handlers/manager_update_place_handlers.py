@@ -21,7 +21,6 @@ geosuggest_selector = GeosuggestSelector(ManagerUpdatePlaceFSM.select_place)
     or_f(
         ManagerUpdatePlaceFSM.enter_place_name,
         ManagerUpdatePlaceFSM.select_place,
-        ManagerUpdatePlaceFSM.enter_new_name,
         ManagerUpdatePlaceFSM.enter_new_description,
     ),
 )
@@ -46,7 +45,9 @@ async def enter_place_name_handler(
     await state.set_state(ManagerUpdatePlaceFSM.select_place)
 
 
-@router.callback_query(ManagerUpdatePlaceFSM.select_place, F.data.contains(KEYBOARD_PREFIX))
+@router.callback_query(
+    ManagerUpdatePlaceFSM.select_place, F.data.contains(KEYBOARD_PREFIX)
+)
 async def selected_place_handler(
     callback: CallbackQuery, state: FSMContext, session: AsyncSession
 ):
@@ -54,15 +55,9 @@ async def selected_place_handler(
         await update_place_funcs.selected_place(
             callback, state, session, geosuggest_selector, failure_kb=place_manager_kb
         )
-        await state.set_state(ManagerUpdatePlaceFSM.enter_new_name)
+        await state.set_state(ManagerUpdatePlaceFSM.enter_new_description)
     except PlaceNotFound:
         await state.set_state(ManagerUpdatePlaceFSM.place_state)
-
-
-@router.message(ManagerUpdatePlaceFSM.enter_new_name, F.text)
-async def enter_name_handler(message: Message, state: FSMContext):
-    await update_place_funcs.enter_name_function(message, state)
-    await state.set_state(ManagerUpdatePlaceFSM.enter_new_description)
 
 
 @router.message(ManagerUpdatePlaceFSM.enter_new_description, F.text)

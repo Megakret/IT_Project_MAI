@@ -25,7 +25,7 @@ async def selected_place(
     state: FSMContext,
     session: AsyncSession,
     geosuggest_selector: GeosuggestSelector,
-    failure_kb: ReplyKeyboardMarkup
+    failure_kb: ReplyKeyboardMarkup,
 ):
     try:
         await geosuggest_selector.selected_place(callback, state)
@@ -34,15 +34,12 @@ async def selected_place(
         place_exists = await db.is_existing_place(session, place.get_info())
         if not place_exists:
             raise ValueError
-        await callback.message.answer("Введите новое название места")
+        await callback.message.answer("Введите новое описание места")
     except ValueError:
-        await callback.message.answer("Такого места нет в базе", reply_markup=failure_kb)
+        await callback.message.answer(
+            "Такого места нет в базе", reply_markup=failure_kb
+        )
         raise PlaceNotFound
-
-
-async def enter_name_function(message: Message, state: FSMContext):
-    await state.update_data(place_name=message.text)
-    await message.answer("Введите новое описание места")
 
 
 # waiting for db
@@ -55,7 +52,6 @@ async def enter_description_function(
     description: str = message.text
     data = await state.get_data()
     place: Place = data["place"]
-    print(data["place_name"])
     print(place.get_info())
     print(description)
     await message.answer(
