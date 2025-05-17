@@ -43,11 +43,7 @@ class Paginator:
         text: str = "\n-----------\n".join(items)
         if text == "":
             raise NoMorePages(page)
-        await self._message.edit_text(text)
-        await self._message.edit_reply_markup(
-            reply_markup=self._paginator_service.update_kb(page)
-        )
-
+        await self._message.edit_text(text, reply_markup=self._paginator_service.update_kb(page), **kwargs)
     async def setup(self, message: Message, *args, **kwargs):
         self._current_page = 1
         try:

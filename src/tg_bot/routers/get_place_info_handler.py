@@ -15,6 +15,7 @@ from tg_bot.ui_components.Paginator import PaginatorService
 from tg_bot.tg_exceptions import NoTextMessageException
 from api.geosuggest.place import Place
 from api.gpt.GptSummarize import GptSummarize
+from api.gpt.GptRetellingDescription import GptRetellingDescription
 import database.db_functions as db
 from database.db_exceptions import UniqueConstraintError
 from tg_bot.keyboards import (
@@ -25,6 +26,7 @@ from tg_bot.keyboards import (
     INDICATOR_CLICKED,
     SUMMARIZE_COMMENTS_TAG,
     LEAVE_COMMENT_TAG,
+    SUMMARIZE_DESCRIPTION_TAG,
 )
 
 
@@ -90,6 +92,7 @@ async def find_place_handler(
         db_res = await db.get_place_with_score(session, place.get_info())
         db_place: db.Place = db_res[0]
         score: int = db_res[1]
+        await state.update_data(description=db_place.desc)
         if score is None:
             await callback.message.answer(
                 f"{db_place.name}\n{db_place.address}\n{db_place.desc}\nВы пока не оценили это место",
@@ -221,3 +224,16 @@ async def enter_comment(message: Message, state: FSMContext, session: AsyncSessi
         await message.answer("Мы принимает только текстовые комментарии")
     except NoPlaceException:
         await message.answer("Попробуйте ввести место еще раз")
+
+
+@router.callback_query(F.data == SUMMARIZE_DESCRIPTION_TAG)
+async def summarize_description(callback: CallbackQuery, state: State):
+    data = await state.get_data()
+    try:
+        description: str = data["description"]
+        reteller = GptRetellingDescription()
+        await callback.answer("Ожидайте...")
+        summarization: str = await reteller.retell_nac(description)
+        await callback.message.answer(summarization)
+    except KeyError:
+        await callback.answer("Что-то пошло не так. Напишите команду заново.")
