@@ -6,6 +6,8 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import ReplyKeyboardRemove
 from aiogram import F
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from tg_bot.routers.user_fsm import UserFSM
 from api.geosuggest.place import Place
 from tg_bot.keyboards import (
     get_user_keyboard,
@@ -13,7 +15,7 @@ from tg_bot.keyboards import (
     INSERT_PLACE_TAGS_TAG,
     starter_admin_kb,
     starter_manager_kb,
-    starter_kb
+    starter_kb,
 )
 from tg_bot.ui_components.GeosuggestSelector import (
     GeosuggestSelector,
@@ -37,6 +39,8 @@ class NewPlaceFSM(StatesGroup):
     enter_score = State()
     enter_comment = State()
     enter_tags = State()
+
+
 # temp start
 managers = {"NoyerXoper", "megakret"}
 admins = set()
@@ -68,8 +72,8 @@ router = Router()
 geosuggest_selector = GeosuggestSelector(NewPlaceFSM.choose_place)
 
 
-@router.message(F.text == "Добавить место")
-@router.message(Command("add_place"))
+@router.message(F.text == "Добавить место", UserFSM.start_state)
+@router.message(Command("add_place"), UserFSM.start_state)
 async def geosuggest_test(message: Message, state: FSMContext) -> None:
     await message.answer(
         "Введите место для досуга: ", reply_markup=ReplyKeyboardRemove()
@@ -77,7 +81,7 @@ async def geosuggest_test(message: Message, state: FSMContext) -> None:
     await state.set_state(NewPlaceFSM.enter_place)
 
 
-@router.message(NewPlaceFSM.enter_place)
+@router.message(NewPlaceFSM.enter_place, UserFSM.start_state)
 async def check_place(message: Message, state: FSMContext):
     await geosuggest_selector.show_suggestions(message, state)
 

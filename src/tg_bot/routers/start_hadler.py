@@ -2,7 +2,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from aiogram.fsm.context import FSMContext
 from aiogram.filters import CommandStart, Command
 from aiogram.types import Message
-from aiogram import Router
+from aiogram import Router, Bot
+
+from tg_bot.routers.user_fsm import UserFSM
 from database.db_exceptions import UniqueConstraintError, ConstraintError
 from tg_bot.tg_exceptions import UserNotFound
 from tg_bot.keyboards import get_user_keyboard
@@ -38,10 +40,16 @@ async def handle_cmd_start(
             "Произошла ошибка, вашего аккаунта нет в базе. Попробуйте прописать /start еще раз."
         )
     await state.clear()
+    await state.set_state(UserFSM.start_state)
 
 
-@router.message(Command("exit"))
-async def exit(message: Message, state: FSMContext) -> None:
+@router.message(Command("exit"), UserFSM.start_state)
+async def exit(
+    bot: Bot, message: Message, state: FSMContext, session: AsyncSession
+) -> None:
+    id = await db.get_id_by_username(session, "NoyerXoper")
+    print(id)
+    await bot.send_message(chat_id=id, text="ffff:w")
     if await state.get_state() is None:
         await message.answer("Вы уже не находитесь не в каком меню")
     else:

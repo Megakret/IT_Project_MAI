@@ -146,16 +146,16 @@ user_manipulation_admin_kb = ReplyKeyboardMarkup(
     keyboard=[
         [
             KeyboardButton(text="Список пользователей"),
-            KeyboardButton(text="Список менеджеров"),
-            KeyboardButton(text="Список админов"),
-            KeyboardButton(text="Список забанненых пользователей"),
-        ],
-        [
             KeyboardButton(text="Забанить пользователя"),
             KeyboardButton(text="Разбанить пользователя"),
-            KeyboardButton(text="Удалить комментарий(-ии) пользователя"),
         ],
-        [KeyboardButton(text="Назад")],
+        [
+            KeyboardButton(text="Удалить комментарий(-ии) пользователя"),
+            KeyboardButton(text="Изменить роль пользователя"),
+        ],
+        [
+            KeyboardButton(text="Назад"),
+        ],
     ]
 )
 
@@ -170,12 +170,30 @@ yes_no_inline = InlineKeyboardMarkup(
 
 set_role_inline = InlineKeyboardMarkup(
     inline_keyboard=[
-        [
-            InlineKeyboardButton(text="Пользователь", callback_data="user"),
-            InlineKeyboardButton(text="Менеджер", callback_data="manager"),
-            InlineKeyboardButton(text="Админ", callback_data="admin"),
-        ]
+        [InlineKeyboardButton(text="Пользователь", callback_data="user")],
+        [InlineKeyboardButton(text="Менеджер", callback_data="manager")],
     ]
+)
+
+set_role_owner_inline = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [InlineKeyboardButton(text="Пользователь", callback_data="user")],
+        [InlineKeyboardButton(text="Менеджер", callback_data="manager")],
+        [InlineKeyboardButton(text="Админ", callback_data="admin")],
+    ]
+)
+
+chose_role_for_paginator_inline = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [InlineKeyboardButton(text="Пользователь", callback_data="user")],
+        [InlineKeyboardButton(text="Менеджер", callback_data="manager")],
+        [InlineKeyboardButton(text="Админ", callback_data="admin")],
+        [InlineKeyboardButton(text="Заблокированные", callback_data="banned")],
+    ]
+)
+
+back_kb = ReplyKeyboardMarkup(
+    keyboard=[[KeyboardButton(text="Назад")]], resize_keyboard=True
 )
 
 
@@ -197,7 +215,10 @@ def generate_page_kb(page: int, postfix: str) -> InlineKeyboardMarkup:
 async def get_user_keyboard(session: AsyncSession, id: int) -> ReplyKeyboardMarkup:
     try:
         right: int = await get_user_rights(session, id)
+        print(right)
         match right:
+            case 4:
+                return starter_admin_kb
             case 3:
                 return starter_admin_kb
             case 2:

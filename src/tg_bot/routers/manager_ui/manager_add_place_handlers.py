@@ -4,7 +4,7 @@ from aiogram.filters import Command
 from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
 from sqlalchemy.ext.asyncio import AsyncSession
-from tg_bot.routers.role_model_fsm.manager_fsm import ManagerAddPlaceFSM
+from tg_bot.routers.role_model_fsm.manager_fsm import ManagerAddPlaceFSM, ManagerFSM
 from tg_bot.ui_components.GeosuggestSelector import KEYBOARD_PREFIX, GeosuggestSelector
 from tg_bot.ui_components.TagSelector import (
     SelectTagsStates,
@@ -15,6 +15,12 @@ from tg_bot.keyboards import (
 
 router = Router()
 geosuggest_selector = GeosuggestSelector(ManagerAddPlaceFSM.choose_place)
+
+
+@router.message(F.text == "Управление местами", ManagerFSM.start_state)
+async def enter_place_state_handler(message: Message, state: FSMContext):
+    await add_place_funcs.enter_place_state(message)
+    await state.set_state(ManagerAddPlaceFSM.start_state)
 
 
 @router.message(F.text == "Добавить место", ManagerAddPlaceFSM.start_state)

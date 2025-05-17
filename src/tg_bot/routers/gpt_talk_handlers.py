@@ -3,7 +3,9 @@ from aiogram.filters import Command
 from aiogram.types import Message, ReplyKeyboardRemove
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
+
 from api.gpt.GptTalker import GptTalker
+from tg_bot.routers.user_fsm import UserFSM
 from tg_bot.aiogram_coros import custom_clear
 from tg_bot.tg_exceptions import NoTextMessageException
 from httpx import ReadTimeout
@@ -16,7 +18,7 @@ class GptTalkFSM(StatesGroup):
     talk_state = State()
 
 
-@router.message(Command("talk"))
+@router.message(Command("talk"), UserFSM.start_state)
 async def start_gpt(message: Message, state: FSMContext):
     gpt_talker: GptTalker = GptTalker()
     await custom_clear(state)

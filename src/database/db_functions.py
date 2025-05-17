@@ -44,7 +44,7 @@ class User(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=False)
     name: Mapped[str] = mapped_column(unique=True)
-    rights: Mapped[int] = mapped_column(CheckConstraint("rights BETWEEN 1 and 3"))
+    rights: Mapped[int] = mapped_column(CheckConstraint("rights BETWEEN 1 and 4"))
     is_banned: Mapped[bool]
 
     user_places: Mapped[list["UserPlace"]] = relationship(
@@ -108,6 +108,14 @@ class Tag(Base):
     __mapper_args__ = {"primary_key": [fk_place_address, place_tag]}
 
 
+async def get_id_by_username(session: AsyncSession, username: str) -> int:
+    statement = select(User.id).where(User.name == username)
+    result = (await session.execute(statement=statement)).scalar_one_or_none()
+    if not result:
+        raise ValueError("Username is not found")
+    return result
+
+
 async def add_user(
     session: AsyncSession,
     id: int,
@@ -152,6 +160,13 @@ async def delete_user(session: AsyncSession, user_id: int) -> None:
     await session.commit()
 
 
+async def does_user_exist(session: AsyncSession, username: str) -> bool:
+    result = (
+        await session.execute(statement=select(User.name).where(User.name == username))
+    ).scalar_one_or_none()
+    return bool(result)
+
+
 async def delete_user_data_by_username(session: AsyncSession, username: str) -> None:
     user_data = await session.execute(select(User.id).where(User.name == username))
     id = user_data.scalar_one_or_none()
@@ -171,13 +186,24 @@ async def is_existing_user(session: AsyncSession, id: int) -> bool:
 async def get_users_by_permission(
     session: AsyncSession, page: int, places_per_page: int, permission: int
 ) -> list[str]:
-    statement = (
-        select(User.name)
-        .where(User.rights == permission, User.is_banned == False)
-        .order_by(User.name)
-        .limit(places_per_page)
-        .offset((page - 1) * places_per_page)
-    )
+
+    if permission < 3:
+        statement = (
+            select(User.name)
+            .where(User.rights == permission, User.is_banned == False)
+            .order_by(User.name)
+            .limit(places_per_page)
+            .offset((page - 1) * places_per_page)
+        )
+    else:
+        statement = (
+            select(User.name)
+            .where(User.rights >= permission, User.is_banned == False)
+            .order_by(User.name)
+            .limit(places_per_page)
+            .offset((page - 1) * places_per_page)
+        )
+
     result = await session.execute(statement)
     instance_list = list(result.scalars().all())
     return instance_list
@@ -212,13 +238,12 @@ async def get_user_rights(session: AsyncSession, id: int) -> int:
     return result.scalar_one()
 
 
-async def get_user_rights(session: AsyncSession, id: int) -> int:
-    result = await session.execute(statement=select(User.rights).where(User.id == id))
-    return result.scalar_one()
-
-
 async def is_admin(session: AsyncSession, id: int) -> bool:
-    return (await get_permisions(session, id)) == 3
+    return (await get_permisions(session, id)) >= 3
+
+
+async def is_owner(session: AsyncSession, id: int) -> bool:
+    return (await get_permisions(session, id)) == 4
 
 
 async def make_user(session: AsyncSession, username: str) -> None:
@@ -270,10 +295,27 @@ async def unban(session: AsyncSession, id: int) -> None:
     await session.execute(
         statement=update(User).where(User.id == id).values(is_banned=False)
     )
+    await session.commit()
+
+
+async def unban_by_username(session: AsyncSession, username: str) -> None:
+    await session.execute(
+        statement=update(User).where(User.name == username).values(is_banned=0)
+    )
+    await session.commit()
 
 
 async def is_user_banned(session: AsyncSession, user_id: int) -> bool:
     result = await session.execute(select(User.is_banned).where(User.id == user_id))
+    banned_status = result.scalar_one_or_none()
+
+    if banned_status is None:
+        return False
+    return banned_status
+
+
+async def is_username_banned(session: AsyncSession, username: str) -> bool:
+    result = await session.execute(select(User.is_banned).where(User.name == username))
     banned_status = result.scalar_one_or_none()
 
     if banned_status is None:

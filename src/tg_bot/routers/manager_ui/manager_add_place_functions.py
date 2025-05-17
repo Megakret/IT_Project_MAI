@@ -20,8 +20,13 @@ from tg_bot.ui_components.TagSelector import (
     TAG_DATA_KEY,
 )
 from tg_bot.tg_exceptions import NoTextMessageException, ScoreOutOfRange
+from tg_bot.keyboards import place_kb
 import database.db_functions as db
 from database.db_exceptions import UniqueConstraintError
+
+
+async def enter_place_state(message: Message):
+    await message.answer("Вы зашли в меню изменения мест", reply_markup=place_kb)
 
 
 # @router.message(F.text == "Добавить место")

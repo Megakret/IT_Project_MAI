@@ -6,7 +6,7 @@ from tg_bot.keyboards import admin_kb
 from tg_bot.routers.role_model_fsm.admin_fsm import *
 from sqlalchemy.ext.asyncio import AsyncSession
 from database.db_functions import is_admin
-from tg_bot.routers.add_place_handler import handle_cmd_start
+from tg_bot.routers.start_hadler import handle_cmd_start
 
 router = Router()
 
@@ -23,6 +23,7 @@ async def login_into_manager_menu(
         await message.answer("Вы не являетесь админом!")
 
 
+@router.message(F.text == "Назад", AdminFSM.user_manipulation_state)
 @router.message(F.text == "Назад", AdminFSM.channel_state)
 async def go_back_to_manager_menu(message: Message, state: FSMContext):
     await state.set_state(AdminFSM.start_state)

@@ -5,6 +5,8 @@ from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from tg_bot.routers.user_fsm import UserFSM
 from tg_bot.ui_components.Paginator import PaginatorService
 from database.db_functions import get_places_with_tag, Place
 from tg_bot.keyboards import (
@@ -45,8 +47,8 @@ paginator_service = PaginatorService(
 )
 
 
-@router.message(F.text == "Найти место по тегу")
-@router.message(Command("get_places_by_tag"))
+@router.message(F.text == "Найти место по тегу", UserFSM.start_state)
+@router.message(Command("get_places_by_tag"), UserFSM.start_state)
 async def show_tag_menu_handler(message: Message, state: FSMContext):
     await show_tag_menu(
         message,
@@ -77,7 +79,7 @@ async def show_places(
     await state.set_state(None)
 
 
-@router.callback_query(F.data == SHOW_PLACES_BY_TAG)
+@router.callback_query(F.data == SHOW_PLACES_BY_TAG, UserFSM.start_state)
 async def show_places_invalid(callback: CallbackQuery, state: FSMContext):
     await callback.message.answer(
         "Что-то пошло не так. Попробуйте еще раз ввести команду /get_place_by_tag"
@@ -85,7 +87,7 @@ async def show_places_invalid(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
 
 
-@router.callback_query(F.data == NEXT_PAGE + POSTFIX)
+@router.callback_query(F.data == NEXT_PAGE + POSTFIX, UserFSM.start_state)
 async def next_page(callback: CallbackQuery, state: FSMContext, session: AsyncSession):
     data = await state.get_data()
     try:
@@ -97,7 +99,7 @@ async def next_page(callback: CallbackQuery, state: FSMContext, session: AsyncSe
         await callback.answer("Что-то пошло не так, попробуйте заново ввести команду")
 
 
-@router.callback_query(F.data == PREV_PAGE + POSTFIX)
+@router.callback_query(F.data == PREV_PAGE + POSTFIX, UserFSM.start_state)
 async def prev_page(callback: CallbackQuery, state: FSMContext, session: AsyncSession):
     data = await state.get_data()
     try:
@@ -109,7 +111,7 @@ async def prev_page(callback: CallbackQuery, state: FSMContext, session: AsyncSe
         await callback.answer("Что-то пошло не так, попробуйте заново ввести команду")
 
 
-@router.callback_query(F.data == INDICATOR_CLICKED + POSTFIX)
+@router.callback_query(F.data == INDICATOR_CLICKED + POSTFIX, UserFSM.start_state)
 async def prev_page(callback: CallbackQuery, state: FSMContext, session: AsyncSession):
     data = await state.get_data()
     try:

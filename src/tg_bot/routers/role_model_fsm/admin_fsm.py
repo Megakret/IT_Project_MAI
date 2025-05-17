@@ -14,9 +14,12 @@ class ChannelFSM(StatesGroup):
 
 
 class UserManipulationFSM(StatesGroup):
-    change_role_state = State()
+    choose_role_for_paginator_state = State()
     ban_state = State()
     ban_verify_state = State()
     ban_deletion_state = State()
     deletion_state = State()
     view_comments_state = State()
+    unban_name_input_state = State()
+    change_role_state = State()
+    select_role_state = State()

@@ -1,7 +1,21 @@
-from aiogram import F, Router
+from tg_bot.DispatcherHandler import DispatcherHandler
+from aiogram import F, Router, Bot
 from aiogram.fsm.context import FSMContext
-from aiogram.types import Message, ReplyKeyboardRemove, CallbackQuery
-from tg_bot.keyboards import yes_no_inline, set_role_inline, user_manipulation_admin_kb
+from aiogram.filters import Command, or_f
+from aiogram.types import (
+    Message,
+    ReplyKeyboardRemove,
+    CallbackQuery,
+)
+
+from tg_bot.keyboards import (
+    yes_no_inline,
+    set_role_inline,
+    set_role_owner_inline,
+    user_manipulation_admin_kb,
+    chose_role_for_paginator_inline,
+    back_kb,
+)
 from tg_bot.routers.role_model_fsm.admin_fsm import AdminFSM, UserManipulationFSM
 from sqlalchemy.ext.asyncio import AsyncSession
 from tg_bot.ui_components.Paginator import PaginatorService
@@ -21,7 +35,12 @@ def validate_username(tag: str) -> bool:
 
 
 async def get_formatted_list(
-    page: int, places_per_page: int, session: AsyncSession, permission: int, **kwargs
+    page: int,
+    places_per_page: int,
+    session: AsyncSession,
+    permission: int,
+    *args,
+    **kwargs,
 ) -> list[str]:
     if permission:
         users_list: list[str] = await db.get_users_by_permission(
@@ -31,7 +50,7 @@ async def get_formatted_list(
         users_list: list[str] = await db.get_banned_users(
             session, page, places_per_page
         )
-    users_formated = map(lambda x: f"@{x}", users_list)
+    users_formated = map(lambda x: f"`@{x}`", users_list)
     return list(users_formated)
 
 
@@ -52,42 +71,123 @@ async def open_menu(message: Message, state: FSMContext):
     )
 
 
-@router.message(
-    F.text == "Список забанненых пользователей", AdminFSM.user_manipulation_state
-)
-async def show_users(message: Message, state: FSMContext, session: AsyncSession):
-    await paginator_service.start_paginator(message, state, session, 0)
+@router.message(Command("exit"), or_f(*UserManipulationFSM.__all_states__))
+@router.message(F.text == "Назад", UserManipulationFSM.choose_role_for_paginator_state)
+async def exit_to_first_menu(message: Message, state: FSMContext):
+    await message.answer(
+        "Переход в меню управления пользователями...",
+        reply_markup=user_manipulation_admin_kb,
+    )
+    await state.clear()
+    await state.set_state(AdminFSM.user_manipulation_state)
 
 
 @router.message(F.text == "Список пользователей", AdminFSM.user_manipulation_state)
-async def show_users(message: Message, state: FSMContext, session: AsyncSession):
-    await paginator_service.start_paginator(message, state, session, 1)
+async def show_users_by_permission(
+    message: Message, state: FSMContext, session: AsyncSession
+):
+    message_to_delete = await message.answer("Загрузка...", reply_markup=back_kb)
+    await message.answer(
+        "Выберите роль для показа:", reply_markup=chose_role_for_paginator_inline
+    )
+    # await message_to_delete.delete()
+    await state.set_state(UserManipulationFSM.choose_role_for_paginator_state)
 
 
-@router.message(F.text == "Список менеджеров", AdminFSM.user_manipulation_state)
-async def show_users(message: Message, state: FSMContext, session: AsyncSession):
-    await paginator_service.start_paginator(message, state, session, 2)
+@router.callback_query(
+    F.data == "banned", UserManipulationFSM.choose_role_for_paginator_state
+)
+async def show_banned(call: CallbackQuery, state: FSMContext, session: AsyncSession):
+    await paginator_service.start_paginator_on_message(
+        call.message, state, session, 0, parse_mode="MARKDOWN"
+    )
+    await call.message.answer(
+        "Возвращение в меню управления пользователями",
+        reply_markup=user_manipulation_admin_kb,
+    )
+    await state.set_state(AdminFSM.user_manipulation_state)
 
 
-@router.message(F.text == "Список админов", AdminFSM.user_manipulation_state)
-async def show_users(message: Message, state: FSMContext, session: AsyncSession):
-    await paginator_service.start_paginator(message, state, session, 3)
+@router.callback_query(
+    F.data == "user", UserManipulationFSM.choose_role_for_paginator_state
+)
+async def show_banned(call: CallbackQuery, state: FSMContext, session: AsyncSession):
+    await paginator_service.start_paginator_on_message(
+        call.message, state, session, 1, parse_mode="MARKDOWN"
+    )
+    await call.message.answer(
+        "Возвращение в меню управления пользователями",
+        reply_markup=user_manipulation_admin_kb,
+    )
+    await state.set_state(AdminFSM.user_manipulation_state)
+
+
+@router.callback_query(
+    F.data == "manager", UserManipulationFSM.choose_role_for_paginator_state
+)
+async def show_banned(call: CallbackQuery, state: FSMContext, session: AsyncSession):
+    await paginator_service.start_paginator_on_message(
+        call.message, state, session, 2, parse_mode="MARKDOWN"
+    )
+    await call.message.answer(
+        "Возвращение в меню управления пользователями",
+        reply_markup=user_manipulation_admin_kb,
+    )
+    await state.set_state(AdminFSM.user_manipulation_state)
+
+
+@router.callback_query(
+    F.data == "admin", UserManipulationFSM.choose_role_for_paginator_state
+)
+async def show_admin(call: CallbackQuery, state: FSMContext, session: AsyncSession):
+    await paginator_service.start_paginator_on_message(
+        call.message, state, session, 3, parse_mode="MARKDOWN"
+    )
+    await call.message.answer(
+        "Возвращение в меню управления пользователями",
+        reply_markup=user_manipulation_admin_kb,
+    )
+    await state.set_state(AdminFSM.user_manipulation_state)
 
 
 @router.message(F.text == "Забанить пользователя", AdminFSM.user_manipulation_state)
 async def ban_start(message: Message, state: FSMContext):
     await message.answer(
-        "Введите тего пользователя через @ для того, чтобы забанить его.\nДля отмены операции напишите /exit",
+        "Введите имя пользователя человека, которого Вы хотите заблокировать.\nДля выхода пропишите /exit",
         reply_markup=ReplyKeyboardRemove(),
     )
     await state.set_state(UserManipulationFSM.ban_state)
 
 
 @router.message(UserManipulationFSM.ban_state)
-async def input(message: Message, state: FSMContext):
+async def ban_input(message: Message, state: FSMContext, session: AsyncSession):
     text = message.text.strip()
-    if not validate_username(message.text):
-        message.answer("Формат имени пользователя неверен. Для выхода пропишите /exit")
+    if text[1:] == message.from_user.username:
+        await message.answer("Не стоит себя блокировать.\nДля выхода пропишите /exit")
+        return
+    if not validate_username(text):
+        await message.answer(
+            "Формат имени пользователя неверен. Для выхода пропишите /exit"
+        )
+        return
+    if not await db.does_user_exist(session, text[1:]):
+        await message.answer(
+            f"Пользователь {text} не найден.\nДля выхода пропишите /exit"
+        )
+        return
+    if not await db.is_owner(session, message.from_user.id) and await db.is_admin(
+        session, await db.get_id_by_username(session, text[1:])
+    ):
+        await message.answer(
+            f"Только владелец может блокировать админов.\nДля выхода пропишите /exit"
+        )
+        return
+    if await db.is_username_banned(session, text[1:]):
+        await message.answer(
+            f"Пользователь {text} уже заблокирован.\nДля выхода пропишите /exit"
+        )
+        return
+
     await state.set_state(UserManipulationFSM.ban_verify_state)
     await state.set_data({"username": text})
     await message.answer(
@@ -108,16 +208,21 @@ async def delete_data_of_banned_person_verify(
             "Вероятно, вы ошиблись в нике пользователя. Попробуйте ещё раз ввести. Для выхода пропишите /exit"
         )
         await state.set_state(UserManipulationFSM.ban_state)
-    await call.message.answer(
+    id = await db.get_id_by_username(session, username[1:])
+    await call.message.edit_text(
         f"Пользователь {username} забанен.\nХотите ли вы удалить данные о нём?",
         reply_markup=yes_no_inline,
     )
+    await DispatcherHandler.send_message(
+        id, "Поздравляем, Вы забанены!", reply_markup=ReplyKeyboardRemove()
+    )
+    await DispatcherHandler.set_state(id, None)
     await state.set_state(UserManipulationFSM.deletion_state)
     await call.answer()
 
 
 @router.callback_query(F.data == "no", UserManipulationFSM.ban_verify_state)
-async def banned_without_deletion(call: CallbackQuery, state: FSMContext):
+async def not_banned(call: CallbackQuery, state: FSMContext):
     await call.message.answer(
         "Пользователь не был забанен. Возвращение в меню",
         reply_markup=user_manipulation_admin_kb,
@@ -150,5 +255,119 @@ async def banned_without_deletion(call: CallbackQuery, state: FSMContext):
     await call.answer()
 
 
-# @router.message(F.text == "Разбанить пользователя", AdminFSM.user_manipulation_state)
-# async def unban
+@router.message(F.text == "Разбанить пользователя", AdminFSM.user_manipulation_state)
+async def unban(message: Message, state: FSMContext, session: AsyncSession):
+    await message.answer(
+        "Введите имя пользователя, которого вы хотите разблокировать.\nДля выходи пропишите /exit\nСписок заблокированных пользователей:",
+        reply_markup=ReplyKeyboardRemove(),
+    )
+    await paginator_service.start_paginator(
+        message, state, session, 0, parse_mode="MARKDOWN"
+    )
+    await state.set_state(UserManipulationFSM.unban_name_input_state)
+
+
+@router.message(UserManipulationFSM.unban_name_input_state)
+async def unban_person(message: Message, state: FSMContext, session: AsyncSession):
+    text = message.text.strip()
+    if not validate_username(text):
+        await message.answer("Неправильный формат имени, для выходи пропишите /exit")
+        return
+    if not await db.is_username_banned(session, text[1:]):
+        await message.answer(
+            f"Пользователь {text} либо не заблокирован, либо не существует"
+        )
+        return
+    await db.unban_by_username(session, message.text[1:])
+    await message.answer(
+        f"Пользователь {text} разблокирован",
+        reply_markup=user_manipulation_admin_kb,
+    )
+    await state.set_state(AdminFSM.user_manipulation_state)
+
+
+@router.message(
+    F.text == "Изменить роль пользователя", AdminFSM.user_manipulation_state
+)
+async def change_role(message: Message, state: FSMContext):
+    await message.answer(
+        "Введите имя пользователя через @\nДля выхода пропишите /exit",
+        reply_markup=ReplyKeyboardRemove(),
+    )
+    await state.set_state(UserManipulationFSM.change_role_state)
+
+
+@router.message(UserManipulationFSM.change_role_state)
+async def change_role_input_name(
+    message: Message, state: FSMContext, session: AsyncSession
+):
+    if message.text[1:] == message.from_user.username:
+        await message.answer(
+            "Вы не можете изменить свою собственную роль!\nДля выхода пропишите /exit"
+        )
+        return
+    if not validate_username(message.text):
+        await message.answer(
+            f"Неверный формат имени: `{message.text}`. Для выхода пропишите /exit",
+            parse_mode="MARKDOWN",
+        )
+        return
+    if not (await db.does_user_exist(session, message.text[1:])):
+        await message.answer(
+            f"Пользователь `{message.text}` не существует. Для выхода пропишите /exit",
+            parse_mode="MARKDOWN",
+        )
+        return
+    if await db.is_username_banned(session, message.text[1:]):
+        await message.answer(
+            f"Пользователь `{message.text}` заблокирован. Для выхода пропишите /exit",
+            parse_mode="MARKDOWN",
+        )
+        return
+    if await db.is_owner(session, message.from_user.id):
+        await message.answer("Выберите роль:", reply_markup=set_role_owner_inline)
+        await state.set_data({"is_owner": True, "username": message.text})
+        await state.set_state(UserManipulationFSM.select_role_state)
+    else:
+        await message.answer("Выберите роль:", reply_markup=set_role_inline)
+        await state.set_data({"is_owner": False, "username": message.text})
+        await state.set_state(UserManipulationFSM.select_role_state)
+
+
+@router.callback_query(F.data == "user", UserManipulationFSM.select_role_state)
+async def set_user(call: CallbackQuery, state: FSMContext, session: AsyncSession):
+    data = await state.get_data()
+    await db.make_user(session, data["username"][1:])
+    await call.message.answer(
+        f'{data["username"]} теперь имеет роль "Пользователь"',
+        reply_markup=user_manipulation_admin_kb,
+    )
+    await state.set_state(AdminFSM.user_manipulation_state)
+    await call.answer()
+
+
+@router.callback_query(F.data == "manager", UserManipulationFSM.select_role_state)
+async def set_manager(call: CallbackQuery, state: FSMContext, session: AsyncSession):
+    data = await state.get_data()
+    await db.make_manager(session, data["username"][1:])
+    await call.message.answer(
+        f'{data["username"]} теперь имеет роль "Менеджер"',
+        reply_markup=user_manipulation_admin_kb,
+    )
+    await state.set_state(AdminFSM.user_manipulation_state)
+    await call.answer()
+
+
+@router.callback_query(F.data == "admin", UserManipulationFSM.select_role_state)
+async def set_admin(call: CallbackQuery, state: FSMContext, session: AsyncSession):
+    data = await state.get_data()
+    if not data["is_owner"]:
+        await call.message.answer("А твикать коллбеки не красиво, ничего не получилось")
+        return
+    await db.make_admin(session, data["username"][1:])
+    await call.message.answer(
+        f'{data["username"]} теперь имеет роль "Админ"',
+        reply_markup=user_manipulation_admin_kb,
+    )
+    await state.set_state(AdminFSM.user_manipulation_state)
+    await call.answer()
