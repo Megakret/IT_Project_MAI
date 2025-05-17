@@ -47,11 +47,3 @@ async def manage_places(message: Message, state: FSMContext):
 async def exit_handler(message: Message, state: FSMContext):
     await message.answer("Вы вышли из меню управления местами", reply_markup=manager_kb)
     await state.set_state(ManagerFSM.start_state)
-
-
-@router.message(ManagerFSM.place_state, F.text == "Помощь")
-async def show_help(message: Message):
-    await message.answer(
-        "Команды редактировать место и удалить место требуют идентификатор (id) места."
-        " Вы сможете получить его с помощью кнопки 'Найти место.'"
-    )
