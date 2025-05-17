@@ -24,8 +24,13 @@ from tg_bot.ui_components.TagSelector import (
     TagSelector,
     TAG_DATA_KEY,
 )
-from tg_bot.tg_exceptions import NoTextMessageException, ScoreOutOfRange
+from tg_bot.tg_exceptions import (
+    NoTextMessageException,
+    ScoreOutOfRange,
+)
 from tg_bot.filters.role_model_filters import IsAdmin, IsManager
+from tg_bot.utils_and_validators import validate_message_size, MessageIsTooLarge
+from tg_bot.config import MAX_COMMENT_SIZE
 import database.db_functions as db
 from database.db_exceptions import UniqueConstraintError
 
@@ -72,11 +77,13 @@ router = Router()
 geosuggest_selector = GeosuggestSelector(NewPlaceFSM.choose_place)
 tag_selector = TagSelector(selecting_state=NewPlaceFSM.select_tags, router=router)
 
+
 @router.message(F.text == "Добавить место")
 @router.message(Command("add_place"))
 async def geosuggest_test(message: Message, state: FSMContext) -> None:
     await message.answer(
-        "Чтобы выйти из команды, напишите /exit. Введите место для досуга: ", reply_markup=ReplyKeyboardRemove()
+        "Чтобы выйти из команды, напишите /exit. Введите место для досуга: ",
+        reply_markup=ReplyKeyboardRemove(),
     )
     await state.set_state(NewPlaceFSM.enter_place)
 
@@ -156,7 +163,7 @@ async def add_request_to_manager(
         await db.add_place(
             session, place.get_name(), place.get_info(), data["description"]
         )
-        await db.add_place_tags(session, place.get_name(), tags)
+        await db.add_place_tags(session, place.get_info(), tags)
         await callback.answer("Место успешно добавлено")
         await callback.message.answer(
             "Хотите добавить отзыв на место?", reply_markup=yes_no_kb
@@ -200,9 +207,18 @@ async def enter_score_handler(message: Message, state: FSMContext):
 async def enter_comment_handler(
     message: Message, state: FSMContext, session: AsyncSession
 ):
-    comment: str = message.text
-    await state.update_data(comment=comment)
-    await add_user_place_with_feedback(message, state, session, message.from_user.id)
+    try:
+        comment: str = validate_message_size(message.text, MAX_COMMENT_SIZE)
+        await state.update_data(comment=comment)
+        await add_user_place_with_feedback(
+            message, state, session, message.from_user.id
+        )
+    except MessageIsTooLarge as e:
+        print(e)
+        await message.answer(
+            f"В вашем комментарие слишком много символов: {e.message_size}."
+            f"Максимальное количество символов: {e.max_size}"
+        )
 
 
 @router.message(NewPlaceFSM.enter_comment)

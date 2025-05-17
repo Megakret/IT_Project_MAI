@@ -6,6 +6,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from tg_bot.ui_components.Paginator import PaginatorService
 from database.db_functions import get_places, Place
 from tg_bot.keyboards import NEXT_PAGE, PREV_PAGE, INDICATOR_CLICKED
+from tg_bot.utils_and_validators import shorten_message
+from tg_bot.config import MAX_DESCRIPTION_VIEWSIZE
 
 router = Router()
 PLACES_PER_PAGE = 5
@@ -17,8 +19,10 @@ async def get_formatted_list(
 ) -> list[str]:
     place_list: list[Place] = await get_places(session, page, places_per_page)
     place_formatted_list: map[str] = map(
-        lambda x: f"{x.name}\n{x.address}\n{x.desc}", place_list
+        lambda x: f"{x.name}\n{x.address}\n{shorten_message(x.desc, MAX_DESCRIPTION_VIEWSIZE)}",
+        place_list,
     )
+
     return place_formatted_list
 
 

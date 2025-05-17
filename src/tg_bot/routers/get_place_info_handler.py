@@ -26,6 +26,7 @@ from tg_bot.keyboards import (
     SUMMARIZE_COMMENTS_TAG,
     LEAVE_COMMENT_TAG,
 )
+from tg_bot.utils_and_validators import MessageIsTooLarge, validate_message_size
 
 
 router = Router()
@@ -70,7 +71,9 @@ paginator_service = PaginatorService(
 @router.message(Command("get_place"))
 async def get_place_handler(message: Message, state: FSMContext):
     await state.clear()
-    await message.answer("Чтобы выйти из команды, напишите /exit. Введите название места:")
+    await message.answer(
+        "Чтобы выйти из команды, напишите /exit. Введите название места:"
+    )
     await state.set_state(GetPlaceStates.enter_place)
 
 
@@ -217,12 +220,10 @@ async def pressed_leave_comment_button(callback: CallbackQuery, state: FSMContex
         await callback.answer("Попробуйте ввести место еще раз")
 
 
-@router.message(GetPlaceStates.enter_comment)
+@router.message(GetPlaceStates.enter_comment, F.text)
 async def enter_comment(message: Message, state: FSMContext, session: AsyncSession):
     try:
-        comment = message.text
-        if comment == "":
-            raise NoTextMessageException
+        comment = validate_message_size(message.text)
         data = await state.get_data()
         place: Place = data.get(PLACE_KEY)
         if place is None:
@@ -230,7 +231,11 @@ async def enter_comment(message: Message, state: FSMContext, session: AsyncSessi
         await db.add_comment(session, message.from_user.id, place.get_info(), comment)
         await message.answer("Ваш комментарий успешно добавлен")
         await state.set_state(GetPlaceStates.choose_place)
-    except NoTextMessageException:
-        await message.answer("Мы принимает только текстовые комментарии")
     except NoPlaceException:
         await message.answer("Попробуйте ввести место еще раз")
+    except MessageIsTooLarge as e:
+        print(e)
+        await message.answer(
+            f"В вашем комментарие слишком много символов: {e.message_size}."
+            f"Максимальное количество символов: {e.max_size}"
+        )

@@ -15,6 +15,8 @@ from tg_bot.keyboards import (
     show_places_by_tag_kb,
 )
 from tg_bot.ui_components.TagSelector import TAGS, TAG_DATA_KEY, TagSelector
+from tg_bot.utils_and_validators import shorten_message
+from tg_bot.config import MAX_DESCRIPTION_VIEWSIZE
 
 router = Router()
 POSTFIX = "places_by_tag"
@@ -39,7 +41,8 @@ async def get_places_by_tag(
 ) -> list[str]:
     places: list[Place] = await get_places_with_tag(session, tag, page, places_per_page)
     place_formatted_list: map[str] = map(
-        lambda x: f"{x.name}\n{x.address}\n{x.desc}", places
+        lambda x: f"{x.name}\n{x.address}\n{shorten_message(x.desc, MAX_DESCRIPTION_VIEWSIZE)}",
+        places,
     )
     return list(place_formatted_list)
 
