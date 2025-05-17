@@ -13,6 +13,8 @@ from tg_bot.ui_components.TagSelector import (
     TagSelector,
     TAG_DATA_KEY,
 )
+from tg_bot.utils_and_validators import validate_message_size, MessageIsTooLarge
+from tg_bot.config import MAX_NAME_SIZE
 import database.db_functions as db
 from database.db_exceptions import UniqueConstraintError
 
@@ -20,15 +22,14 @@ from database.db_exceptions import UniqueConstraintError
 # @router.message(F.text == "Добавить место")
 # @router.message(Command("add_place"))
 async def add_place_handler(message: Message, state: FSMContext) -> None:
-    await message.answer(
-        "Введите место для досуга: ", reply_markup=back_kb
-    )
+    await message.answer("Введите место для досуга: ", reply_markup=back_kb)
 
 
 # @router.message(NewPlaceFSM.enter_place)
 async def show_suggestions(
     message: Message, state: FSMContext, geosuggest_selector: GeosuggestSelector
 ):
+    validate_message_size(message.text, MAX_NAME_SIZE)
     await geosuggest_selector.show_suggestions(message, state)
 
 

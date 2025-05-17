@@ -7,10 +7,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from tg_bot.routers.role_model_fsm.manager_fsm import ManagerAddPlaceFSM
 from tg_bot.ui_components.GeosuggestSelector import KEYBOARD_PREFIX, GeosuggestSelector
 from tg_bot.ui_components.TagSelector import TagSelector
-from tg_bot.keyboards import (
-    INSERT_PLACE_TAGS_TAG, place_manager_kb
-)
+from tg_bot.keyboards import INSERT_PLACE_TAGS_TAG, place_manager_kb
 from tg_bot.keyboards import place_manager_kb
+from tg_bot.tg_exceptions import MessageIsTooLarge
+
 router = Router()
 geosuggest_selector = GeosuggestSelector(ManagerAddPlaceFSM.choose_place)
 tag_selector = TagSelector(
@@ -28,7 +28,9 @@ tag_selector = TagSelector(
     ),
 )
 async def exit_handler(message: Message, state: FSMContext):
-    await message.answer("Вы вышли из команды удаления места", reply_markup=place_manager_kb)
+    await message.answer(
+        "Вы вышли из команды удаления места", reply_markup=place_manager_kb
+    )
     await state.set_state(ManagerAddPlaceFSM.place_state)
 
 
@@ -41,7 +43,14 @@ async def add_place_handler(message: Message, state: FSMContext) -> None:
 
 @router.message(ManagerAddPlaceFSM.enter_place)
 async def show_suggestions(message: Message, state: FSMContext):
-    await add_place_funcs.show_suggestions(message, state, geosuggest_selector)
+    try:
+        await add_place_funcs.show_suggestions(message, state, geosuggest_selector)
+    except MessageIsTooLarge as e:
+        print(e)
+        await message.answer(
+            f"В вашем названии слишком много символов: {e.message_size}."
+            f"Максимальное количество символов: {e.max_size}"
+        )
 
 
 @router.callback_query(

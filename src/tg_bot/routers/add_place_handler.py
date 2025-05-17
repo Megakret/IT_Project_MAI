@@ -30,7 +30,7 @@ from tg_bot.tg_exceptions import (
 )
 from tg_bot.filters.role_model_filters import IsAdmin, IsManager
 from tg_bot.utils_and_validators import validate_message_size, MessageIsTooLarge
-from tg_bot.config import MAX_COMMENT_SIZE
+from tg_bot.config import MAX_COMMENT_SIZE, MAX_NAME_SIZE
 import database.db_functions as db
 from database.db_exceptions import UniqueConstraintError
 
@@ -90,7 +90,15 @@ async def geosuggest_test(message: Message, state: FSMContext) -> None:
 
 @router.message(NewPlaceFSM.enter_place, F.text)
 async def show_suggestions(message: Message, state: FSMContext):
-    await geosuggest_selector.show_suggestions(message, state)
+    try:
+        validate_message_size(message.text, MAX_NAME_SIZE)
+        await geosuggest_selector.show_suggestions(message, state)
+    except MessageIsTooLarge as e:
+        print(e)
+        await message.answer(
+            f"В вашем названии слишком много символов: {e.message_size}."
+            f"Максимальное количество символов: {e.max_size}"
+        )
 
 
 @router.callback_query(F.data.contains(KEYBOARD_PREFIX), NewPlaceFSM.choose_place)
