@@ -1,12 +1,16 @@
 from aiogram.fsm.context import FSMContext
-from aiogram.types import Message, ReplyKeyboardRemove
+from aiogram.types import Message, ReplyKeyboardRemove, CallbackQuery
 from tg_bot.keyboards import channel_kb
 from tg_bot.routers.channel_fetch_router import (
     add_channel,
     get_channels,
     remove_channel,
 )
-from aiogram.fsm.state import State
+from tg_bot.routers.manager_ui.manager import ManagerFSM
+from tg_bot.routers.role_model_fsm.admin_fsm import *
+from tg_bot.routers.role_model_fsm.manager_fsm import *
+from tg_bot.ui_components.Paginator import PaginatorService
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 def check_channel_tag(tag: str) -> bool:
@@ -15,6 +19,26 @@ def check_channel_tag(tag: str) -> bool:
         and tag.isascii()
         and len(set(" ,.:/!\\\"'?") & set(tag)) == 0
     )
+
+
+async def get_channels_for_paginator(
+    page: int, place_per_page: int, session: AsyncSession
+) -> list[str]:
+    channels = await get_channels(session, page, place_per_page)
+    return [
+        f"Канал: @{channel["tag"]}\nДобавлен: @{channel["manager"]}"
+        for channel in channels
+    ]
+
+
+POSTFIX = "channels"
+CHANNELS_PER_PAGE = 5
+channel_paginator_service = PaginatorService(
+    POSTFIX,
+    CHANNELS_PER_PAGE,
+    get_channels_for_paginator,
+    "Пока что к этом боту не привязан ни один телеграм канал",
+)
 
 
 async def show_channel_menu(message: Message, state: FSMContext, next_state: State):
@@ -52,28 +76,18 @@ async def add_channel_button(message: Message, state: FSMContext, next_state: St
     await state.set_state(next_state)
 
 
-async def add_channel_action(message: Message, state: FSMContext, next_state: State):
+async def add_channel_action(
+    message: Message, state: FSMContext, next_state: State, session: AsyncSession
+):
     if not check_channel_tag(message.text):
         await message.answer("Неверный формат канала. Для выхода пропишите /exit.")
         return
-    if add_channel(message.text, f"@{message.from_user.username}"):
+    if await add_channel(message.text[1:], message.from_user.id, session):
         await state.set_state(next_state)
         await message.answer("Канал успешно добавлен", reply_markup=channel_kb)
         return
     await message.answer(
         "Данный канал уже добавлен другим пользователем, попробуйте другой или напишите /exit для выхода!"
-    )
-
-
-async def display_connected_channels(message: Message):
-    channels = get_channels()
-    await message.answer(
-        "\n------------\n".join(
-            f"Канал: {channel["tag"]}\nДобавлен: {channel["manager"]}"
-            for channel in channels
-        )
-        if len(channels) > 0
-        else "Каналов нет"
     )
 
 
@@ -85,11 +99,13 @@ async def remove_action_button(message: Message, state: FSMContext, next_state: 
     )
 
 
-async def remove_channel_action(message: Message, state: FSMContext, next_state: State):
+async def remove_channel_action(
+    message: Message, state: FSMContext, next_state: State, session: AsyncSession
+):
     if not check_channel_tag(message.text):
         await message.answer("Неправильный формат. Для выхода напишите /exit.")
         return
-    if remove_channel(message.text):
+    if await remove_channel(message.text[1:], session):
         await state.set_state(next_state)
         await message.answer(
             f"Канал {message.text} был удалён", reply_markup=channel_kb

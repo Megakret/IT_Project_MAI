@@ -31,7 +31,7 @@ async def handle_cmd_start(
         keyboard = await get_user_keyboard(session, message.from_user.id)
         await message.answer(
             (
-                "Привет[dafa](https://t.me/BulkovBot?start=hello). Этот бот поможет тебе найти хорошее место для досуга. Выбери команду "
+                "Привет. Этот бот поможет тебе найти хорошее место для досуга. Выбери команду "
                 "с помощью клавиатуры, или напиши, что ты хочешь от бота, и он сам активирует нужную команду."
                 "Если что-то пошло не так, можешь прописать /exit, чтобы выйти из меню команды, или /start, чтобы перезагрузить бота"
             ),
@@ -45,12 +45,3 @@ async def handle_cmd_start(
         )
     await state.clear()
     await state.set_state(UserFSM.start_state)
-
-
-@router.message(Command("exit"), UserFSM.start_state)
-async def exit(message: Message, state: FSMContext) -> None:
-    if await state.get_state() is None:
-        await message.answer("Вы уже не находитесь не в каком меню")
-    else:
-        await message.answer("Вы вышли из текущего меню")
-    await state.set_state(None)

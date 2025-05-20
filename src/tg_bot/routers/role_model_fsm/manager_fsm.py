@@ -16,6 +16,20 @@ class ManagerAddPlaceFSM(ManagerFSM):
     enter_place = State()
     choose_place = State()
     enter_description = State()
-    enter_score = State()
-    enter_comment = State()
-    enter_tags = State()
+    selecting_tags = State()
+
+
+class ManagerGetPlaceFSM(ManagerFSM):
+    enter_place = State()
+    choose_place = State()
+
+
+class ManagerDeletePlaceFSM(ManagerFSM):
+    enter_place_name = State()
+    select_place = State()
+
+
+class ManagerUpdatePlaceFSM(ManagerFSM):
+    enter_place_name = State()
+    select_place = State()
+    enter_new_description = State()

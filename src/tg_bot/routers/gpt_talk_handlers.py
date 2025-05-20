@@ -5,11 +5,11 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 
 from api.gpt.GptTalker import GptTalker
-from tg_bot.routers.user_fsm import UserFSM
-from tg_bot.aiogram_coros import custom_clear
+from tg_bot.utils_and_validators import custom_clear
 from tg_bot.tg_exceptions import NoTextMessageException
 from httpx import ReadTimeout
 from sqlalchemy.ext.asyncio import AsyncSession
+from tg_bot.routers.user_fsm import UserFSM
 
 router = Router()
 

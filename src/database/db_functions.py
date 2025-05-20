@@ -18,12 +18,16 @@ from sqlalchemy.ext.asyncio import (
     AsyncSession,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, NoResultFound
 
 from database.db_exceptions import UniqueConstraintError, ConstraintError
 
 engine: AsyncEngine
 async_session_maker: async_sessionmaker
+# Add channel by user_id and channel username
+# Delete channel by channel username
+# Paged select of connected channel
+# check channel
 
 
 def init_database() -> async_sessionmaker:
@@ -49,6 +53,10 @@ class User(Base):
 
     user_places: Mapped[list["UserPlace"]] = relationship(
         back_populates="parent_user", cascade="all, delete-orphan"
+    )
+
+    user_channels: Mapped[list["TelegramChannel"]] = relationship(
+        back_populates="parent_user"
     )
 
 
@@ -106,6 +114,15 @@ class Tag(Base):
     UniqueConstraint(fk_place_address, place_tag)
 
     __mapper_args__ = {"primary_key": [fk_place_address, place_tag]}
+
+
+class TelegramChannel(Base):
+    __tablename__ = "telegram_channel"
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    channel_username: Mapped[str] = mapped_column(unique=True)
+    fk_user_id: Mapped[int] = mapped_column(ForeignKey(User.id))
+
+    parent_user: Mapped["User"] = relationship(back_populates="user_channels")
 
 
 async def get_id_by_username(session: AsyncSession, username: str) -> int:
@@ -231,6 +248,11 @@ async def get_permisions(session: AsyncSession, id: int) -> int:
 
 async def is_manager(session: AsyncSession, id: int) -> bool:
     return (await get_permisions(session, id)) >= 2
+
+
+async def get_user_rights(session: AsyncSession, id: int) -> int:
+    result = await session.execute(statement=select(User.rights).where(User.id == id))
+    return result.scalar_one()
 
 
 async def get_user_rights(session: AsyncSession, id: int) -> int:
@@ -384,8 +406,30 @@ async def is_existing_place(session: AsyncSession, address: str) -> bool:
     return is_existing.scalar_one()
 
 
-async def remove_place(session: AsyncSession, address: str) -> None:
-    await session.execute(statement=delete(Place).where(Place.address == address))
+async def is_existing_place_by_id(session: AsyncSession, place_id: int) -> bool:
+    statement = select(exists().where(Place.id == place_id))
+    is_existing = await session.execute(statement)
+    return is_existing.scalar_one()
+
+
+async def is_existing_user_place(
+    session: AsyncSession, address: str, user_id: int
+) -> bool:
+    statement = select(
+        exists().where(
+            UserPlace.fk_place_address == address, UserPlace.fk_user_id == user_id
+        )
+    )
+    is_existing = await session.execute(statement)
+    return is_existing.scalar_one()
+
+
+async def remove_place(session: AsyncSession, place_id: int) -> None:
+    place_exists: bool = await is_existing_place_by_id(session, place_id)
+    if not place_exists:
+        raise NoResultFound
+    await session.execute(statement=delete(Place).where(Place.id == place_id))
+    await session.commit()
 
 
 async def add_place_tag(session: AsyncSession, address: str, place_tag: str) -> None:
@@ -549,8 +593,6 @@ async def add_comment(
         await session.commit()
 
 
-# TODO: I need username which starts with @, not plain integer user id
-# returns <username with @, comment, score>
 async def get_place_comments(
     session: AsyncSession, page: int, comments_per_page: int, address: str
 ) -> list[tuple[str, str, int]]:
@@ -700,6 +742,65 @@ async def remove_review(session: AsyncSession, username: str, place_id: int) -> 
     if not result:
         raise ValueError("User comment not found")
     await session.commit()
+
+
+async def add_channel(session: AsyncSession, channel_username: str, user_id: int):
+    try:
+        session.add(
+            TelegramChannel(channel_username=channel_username, fk_user_id=user_id)
+        )
+        await session.flush()
+    except IntegrityError as error:
+        await session.rollback()
+        if isinstance(error.orig, sqlite3.IntegrityError):
+            if error.orig.sqlite_errorcode == 2067:
+                raise UniqueConstraintError(["channel_username"], [channel_username])
+            else:
+                raise ConstraintError(["channel_username"], [channel_username])
+        else:
+            raise
+    except:
+        await session.rollback()
+        raise
+    else:
+        await session.commit()
+
+
+# returns pair of channel_username username of person who added channel
+async def get_paged_channels(
+    session: AsyncSession, page: int, channels_per_page: int
+) -> list[tuple[str, str]]:
+    statement = (
+        select(TelegramChannel.channel_username, User.name)
+        .join(User, User.id == TelegramChannel.fk_user_id)
+        .limit(channels_per_page)
+        .offset((page - 1) * channels_per_page)
+    )
+    result = await session.execute(statement)
+    instance_list = [row.tuple() for row in result.all()]
+    return instance_list
+
+
+async def delete_channel(session: AsyncSession, channel_username: str):
+    statement = (
+        delete(TelegramChannel)
+        .where(TelegramChannel.channel_username == channel_username)
+        .returning(TelegramChannel.id)
+    )
+    result = await session.execute(statement)
+    if result.scalar_one_or_none is None:
+        raise ValueError("This channel is not added")
+    await session.commit()
+
+
+async def does_channel_exist(session: AsyncSession, channel_username: str) -> bool:
+    statement = select(
+        exists(TelegramChannel).where(
+            TelegramChannel.channel_username == channel_username
+        )
+    )
+    result = await session.execute(statement)
+    return result.scalar_one()
 
 
 async def async_main() -> None:

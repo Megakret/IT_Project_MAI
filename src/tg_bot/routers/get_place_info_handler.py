@@ -17,6 +17,7 @@ from tg_bot.ui_components.Paginator import PaginatorService
 from tg_bot.tg_exceptions import NoTextMessageException
 from api.geosuggest.place import Place
 from api.gpt.GptSummarize import GptSummarize
+from api.gpt.GptRetellingDescription import GptRetellingDescription
 import database.db_functions as db
 from database.db_exceptions import UniqueConstraintError
 from tg_bot.keyboards import (
@@ -27,7 +28,9 @@ from tg_bot.keyboards import (
     INDICATOR_CLICKED,
     SUMMARIZE_COMMENTS_TAG,
     LEAVE_COMMENT_TAG,
+    SUMMARIZE_DESCRIPTION_TAG,
 )
+from tg_bot.utils_and_validators import MessageIsTooLarge, validate_message_size
 
 
 router = Router()
@@ -72,13 +75,32 @@ paginator_service = PaginatorService(
 @router.message(Command("get_place"), UserFSM.start_state)
 async def get_place_handler(message: Message, state: FSMContext):
     await state.clear()
-    await message.answer("Введите название места")
+    await message.answer(
+        "Чтобы выйти из команды, напишите /exit. Введите название места:"
+    )
     await state.set_state(GetPlaceStates.enter_place)
 
 
-@router.message(GetPlaceStates.enter_place)
+@router.message(GetPlaceStates.enter_place, F.text)
 async def enter_place_handler(message: Message, state: FSMContext):
     await geosuggest_selector.show_suggestions(message, state)
+
+
+async def generate_place_answer(
+    session: AsyncSession, db_place: db.Place, score: int | None, user_id: int
+) -> str:
+    user_rights: int = await db.get_user_rights(session, user_id)
+    answer = ""
+    if user_rights > 1:
+        answer += f"Айди места: {db_place.id}\n"
+    if score is None:
+        return answer + (
+            f"{db_place.name}\n{db_place.address}\n{db_place.desc}\nВы пока не оценили это место"
+        )
+    else:
+        return answer + (
+            f"{db_place.name}\n{db_place.address}\n{db_place.desc}\nВаша оценка месту: {score}"
+        )
 
 
 @router.callback_query(F.data.contains(KEYBOARD_PREFIX), GetPlaceStates.choose_place)
@@ -91,17 +113,13 @@ async def find_place_handler(
     try:
         db_res = await db.get_place_with_score(session, place.get_info())
         db_place: db.Place = db_res[0]
-        score: int = db_res[1]
-        if score is None:
-            await callback.message.answer(
-                f"{db_place.name}\n{db_place.address}\n{db_place.desc}\nВы пока не оценили это место",
-                reply_markup=show_comments_keyboard,
-            )
-        else:
-            await callback.message.answer(
-                f"{db_place.name}\n{db_place.address}\n{db_place.desc}\nВаша оценка месту: {score}",
-                reply_markup=show_comments_keyboard,
-            )
+        score: int | None = db_res[1]
+        await callback.message.answer(
+            await generate_place_answer(
+                session, db_place, score, callback.from_user.id
+            ),
+            reply_markup=show_comments_keyboard,
+        )
     except NoResultFound:
         await callback.message.answer(
             "Этого места еще нет в базе, но вы можете его добавить с помощью команды /add_place"
@@ -208,12 +226,10 @@ async def pressed_leave_comment_button(callback: CallbackQuery, state: FSMContex
         await callback.answer("Попробуйте ввести место еще раз")
 
 
-@router.message(GetPlaceStates.enter_comment)
+@router.message(GetPlaceStates.enter_comment, F.text)
 async def enter_comment(message: Message, state: FSMContext, session: AsyncSession):
     try:
-        comment = message.text
-        if comment == "":
-            raise NoTextMessageException
+        comment = validate_message_size(message.text)
         data = await state.get_data()
         place: Place = data.get(PLACE_KEY)
         if place is None:
@@ -221,7 +237,24 @@ async def enter_comment(message: Message, state: FSMContext, session: AsyncSessi
         await db.add_comment(session, message.from_user.id, place.get_info(), comment)
         await message.answer("Ваш комментарий успешно добавлен")
         await state.set_state(GetPlaceStates.choose_place)
-    except NoTextMessageException:
-        await message.answer("Мы принимает только текстовые комментарии")
     except NoPlaceException:
         await message.answer("Попробуйте ввести место еще раз")
+    except MessageIsTooLarge as e:
+        print(e)
+        await message.answer(
+            f"В вашем комментарие слишком много символов: {e.message_size}."
+            f"Максимальное количество символов: {e.max_size}"
+        )
+
+
+@router.callback_query(F.data == SUMMARIZE_DESCRIPTION_TAG)
+async def summarize_description(callback: CallbackQuery, state: State):
+    data = await state.get_data()
+    try:
+        description: str = data["description"]
+        reteller = GptRetellingDescription()
+        await callback.answer("Ожидайте...")
+        summarization: str = await reteller.retell_nac(description)
+        await callback.message.answer(summarization)
+    except KeyError:
+        await callback.answer("Что-то пошло не так. Напишите команду заново.")

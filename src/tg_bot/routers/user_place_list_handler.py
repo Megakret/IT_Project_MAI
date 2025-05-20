@@ -8,9 +8,11 @@ from tg_bot.routers.user_fsm import UserFSM
 from tg_bot.ui_components.Paginator import PaginatorService
 from database.db_functions import get_user_places, Place
 from tg_bot.keyboards import NEXT_PAGE, PREV_PAGE, INDICATOR_CLICKED
+from tg_bot.utils_and_validators import shorten_message
+from tg_bot.config import MAX_DESCRIPTION_VIEWSIZE
 
 router = Router()
-PLACES_PER_PAGE = 5
+PLACES_PER_PAGE = 4
 POSTFIX = "user_place"
 
 
@@ -23,10 +25,15 @@ async def get_formatted_list(
     place_formatted_list: list[str] = []
     for item in place_list:
         place: Place = item[0]
-        score: int = item[1]
-        place_formatted_list.append(
-            f"{place.name}\n{place.address}\n{place.desc}\nВаша оценка: {score}"
-        )
+        score: int | None = item[1]
+        if score is not None:
+            place_formatted_list.append(
+                f"{place.name}\n{place.address}\n{shorten_message(place.desc, MAX_DESCRIPTION_VIEWSIZE)}\nВаша оценка: {score}"
+            )
+        else:
+            place_formatted_list.append(
+                f"{place.name}\n{place.address}\n{shorten_message(place.desc, MAX_DESCRIPTION_VIEWSIZE)}\nНет оценки"
+            )
     return place_formatted_list
 
 
