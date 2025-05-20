@@ -140,7 +140,12 @@ place_kb = ReplyKeyboardMarkup(
     ]
 )
 
-place_manager_kb = ReplyKeyboardMarkup(keyboard=[])
+select_comment_deletion_mode_kb = ReplyKeyboardMarkup(
+    keyboard=[
+        [KeyboardButton(text="Поиск по месту")],
+        [KeyboardButton(text="Поиск по пользователю")],
+    ]
+)
 
 user_manipulation_admin_kb = ReplyKeyboardMarkup(
     keyboard=[
@@ -150,7 +155,7 @@ user_manipulation_admin_kb = ReplyKeyboardMarkup(
             KeyboardButton(text="Разбанить пользователя"),
         ],
         [
-            KeyboardButton(text="Удалить комментарий(-ии) пользователя"),
+            KeyboardButton(text="Удаление комментариев"),
             KeyboardButton(text="Изменить роль пользователя"),
         ],
         [

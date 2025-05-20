@@ -23,3 +23,8 @@ class UserManipulationFSM(StatesGroup):
     unban_name_input_state = State()
     change_role_state = State()
     select_role_state = State()
+    delete_comments_name_input = State()
+    delete_comments_place_input = State()
+    select_place_for_comment_deletion = State()
+    delete_comments_paginator_state = State()
+    choose_mode_for_deletion = State()

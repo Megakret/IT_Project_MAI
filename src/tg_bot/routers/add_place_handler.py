@@ -81,7 +81,7 @@ async def geosuggest_test(message: Message, state: FSMContext) -> None:
     await state.set_state(NewPlaceFSM.enter_place)
 
 
-@router.message(NewPlaceFSM.enter_place, UserFSM.start_state)
+@router.message(NewPlaceFSM.enter_place)
 async def check_place(message: Message, state: FSMContext):
     await geosuggest_selector.show_suggestions(message, state)
 

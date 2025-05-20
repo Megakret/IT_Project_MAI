@@ -31,11 +31,12 @@ async def handle_cmd_start(
         keyboard = await get_user_keyboard(session, message.from_user.id)
         await message.answer(
             (
-                "Привет. Этот бот поможет тебе найти хорошее место для досуга. Выбери команду "
+                "Привет[dafa](https://t.me/BulkovBot?start=hello). Этот бот поможет тебе найти хорошее место для досуга. Выбери команду "
                 "с помощью клавиатуры, или напиши, что ты хочешь от бота, и он сам активирует нужную команду."
                 "Если что-то пошло не так, можешь прописать /exit, чтобы выйти из меню команды, или /start, чтобы перезагрузить бота"
             ),
             reply_markup=keyboard,
+            parse_mode="MARKDOWN",
         )
     except UserNotFound as e:
         print(e.message)

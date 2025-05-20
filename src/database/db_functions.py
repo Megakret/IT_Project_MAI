@@ -572,6 +572,28 @@ async def get_place_comments(
     ]
 
 
+async def get_comments_of_user(
+    session: AsyncSession, page: int, comments_per_page: int, username: str
+) -> list[Place, str, int]:
+    statement = (
+        select(UserPlace.comment, UserPlace.score, Place)
+        .join(User, User.id == UserPlace.fk_user_id)
+        .join(Place, Place.address == UserPlace.fk_place_address)
+        .where(User.name == username, UserPlace.comment.is_not(None))
+        .order_by(UserPlace.score.desc())
+        .limit(comments_per_page)
+        .offset((page - 1) * comments_per_page)
+    )
+
+    result = await session.execute(statement)
+    comments = result.all()
+    return [
+        (place_data, comment, score)
+        for comment, score, place_data in comments
+        if comment is not None
+    ]
+
+
 async def get_place_comments_all(
     session: AsyncSession, address: str
 ) -> list[tuple[int, str | None]]:
@@ -651,25 +673,33 @@ async def get_place_with_score(
 
 
 async def remove_review(session: AsyncSession, username: str, place_id: int) -> None:
-    statement = delete(UserPlace).where(
-        UserPlace.fk_user_id
-        == (
-            (
-                await session.execute(
-                    statement=select(User.id).where(User.name == username)
-                )
-            ).scalar_one()
-        ),
-        UserPlace.fk_place_address
-        == (
-            (
-                await session.execute(
-                    statement=select(Place.address).where(Place.id == place_id)
-                )
-            ).scalar_one()
-        ),
+    statement = (
+        delete(UserPlace)
+        .where(
+            UserPlace.fk_user_id
+            == (
+                (
+                    await session.execute(
+                        statement=select(User.id).where(User.name == username)
+                    )
+                ).scalar_one()
+            ),
+            UserPlace.fk_place_address
+            == (
+                (
+                    await session.execute(
+                        statement=select(Place.address).where(Place.id == place_id)
+                    )
+                ).scalar_one()
+            ),
+        )
+        .returning(UserPlace.fk_user_id)
     )
-    await session.execute(statement)
+    result = (await session.execute(statement)).scalar_one_or_none()
+    print(result)
+    if not result:
+        raise ValueError("User comment not found")
+    await session.commit()
 
 
 async def async_main() -> None:
