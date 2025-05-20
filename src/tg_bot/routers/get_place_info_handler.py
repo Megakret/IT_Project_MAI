@@ -7,14 +7,13 @@ from sqlalchemy.exc import NoResultFound
 from aiogram.fsm.state import State, StatesGroup
 
 from tg_bot.routers.user_fsm import UserFSM
-from tg_bot.tg_exceptions import NoTextMessageException
 from tg_bot.ui_components.GeosuggestSelector import (
     GeosuggestSelector,
     KEYBOARD_PREFIX,
     PLACE_KEY,
 )
 from tg_bot.ui_components.Paginator import PaginatorService
-from tg_bot.tg_exceptions import NoTextMessageException
+from tg_bot.tg_exceptions import ScoreOutOfRange
 from api.geosuggest.place import Place
 from api.gpt.GptSummarize import GptSummarize
 from api.gpt.GptRetellingDescription import GptRetellingDescription
@@ -49,6 +48,7 @@ class NoComments(Exception):
 class GetPlaceStates(StatesGroup):
     enter_place = State()
     choose_place = State()
+    enter_score = State()
     enter_comment = State()
 
 
@@ -80,7 +80,9 @@ async def get_place_handler(message: Message, state: FSMContext, session: AsyncS
     )
     await state.set_state(GetPlaceStates.enter_place)
     try:
-        await paginator_service.update_paginator(state, "Достопримечательность · Калининград, Ленинградский район", session)
+        await paginator_service.update_paginator(
+            state, "Достопримечательность · Калининград, Ленинградский район", session
+        )
     except:
         pass
 
@@ -224,11 +226,26 @@ async def pressed_leave_comment_button(callback: CallbackQuery, state: FSMContex
         place: Place = data.get(PLACE_KEY)
         if place is None:
             raise NoPlaceException
-        await callback.message.answer("Напишите комментарий текстом")
+        await callback.message.answer("Оцените место от 1 до 10")
         await callback.answer()
-        await state.set_state(GetPlaceStates.enter_comment)
+        await state.set_state(GetPlaceStates.enter_score)
     except NoPlaceException:
         await callback.answer("Попробуйте ввести место еще раз")
+
+
+@router.message(GetPlaceStates.enter_score, F.text)
+async def enter_score(message: Message, state: FSMContext):
+    try:
+        score: int = int(message.text)
+        if not (1 <= score <= 10):
+            raise ScoreOutOfRange
+        await state.update_data(score=score)
+        await state.set_state(GetPlaceStates.enter_comment)
+        await message.answer("Напишите комментарий к месту")
+    except ValueError:
+        await message.answer("Вы ввели не число, либо дробное число!")
+    except ScoreOutOfRange:
+        await message.answer("Вы должны ввести оценку от 1 до 10!")
 
 
 @router.message(GetPlaceStates.enter_comment, F.text)
@@ -236,9 +253,18 @@ async def enter_comment(message: Message, state: FSMContext, session: AsyncSessi
     try:
         comment = validate_message_size(message.text, MAX_COMMENT_SIZE)
         data = await state.get_data()
-        place: Place = data.get(PLACE_KEY)
+        place: Place | None = data.get(PLACE_KEY)
+        score: int | None = data.get("score")
         if place is None:
             raise NoPlaceException
+        try:
+            await db.add_user_place(
+                session, message.from_user.id, address=place.get_info(), score=score, comment=comment
+            )  # adding user place by default so comment will save
+        except UniqueConstraintError as e:
+            print(e)
+            pass
+        await db.rate(session, message.from_user.id, place.get_info(), score)
         await db.add_comment(session, message.from_user.id, place.get_info(), comment)
         await message.answer("Ваш комментарий успешно добавлен")
         await state.set_state(GetPlaceStates.choose_place)
