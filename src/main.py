@@ -27,7 +27,6 @@ async def main() -> None:
     session_maker = init_database()
     dp = Dispatcher()
     DispatcherHandler.set_data(bot, dp)
-    user_commands_router = Router()
     dp.update.middleware(DatabaseConnectionMiddleware(session_maker))
     dp.include_router(admin_router)
     dp.include_router(admin_manager_rights_router)

@@ -12,11 +12,8 @@ from api.geosuggest.place import Place
 from tg_bot.keyboards import (
     get_user_keyboard,
     insert_place_tags_kb,
-    yes_no_kb,
+    yes_no_inline,
     INSERT_PLACE_TAGS_TAG,
-    starter_admin_kb,
-    starter_manager_kb,
-    starter_kb,
 )
 from tg_bot.ui_components.GeosuggestSelector import (
     GeosuggestSelector,
@@ -90,34 +87,37 @@ async def check_place_existence_handler(
         await state.set_state(UserFSM.start_state)
     elif place_exists_in_base:
         await callback.message.answer(
-            "Хотите оставить отзыв на место?", reply_markup=yes_no_kb
+            "Хотите оставить отзыв на место?", reply_markup=yes_no_inline
         )
         await state.set_state(NewPlaceFSM.want_to_add_review)
     else:
         await callback.message.answer(
             "Этого места еще нет в нашей базе мест. Хотите отправить запрос менеджеру на его добавление?",
-            reply_markup=yes_no_kb,
+            reply_markup=yes_no_inline,
         )
         await state.set_state(NewPlaceFSM.want_to_add_to_database)
+        print("got here")
 
 
-@router.message(F.text == "Да", NewPlaceFSM.want_to_add_to_database)
-async def user_wants_to_add_desc_handler(message: Message, state: FSMContext):
-    await message.answer(
+@router.callback_query(F.data == "yes", NewPlaceFSM.want_to_add_to_database)
+async def user_wants_to_add_desc_handler(callback: CallbackQuery, state: FSMContext):
+    await callback.message.answer(
         "Отлично. Введите описание места.", reply_markup=ReplyKeyboardRemove()
     )
     await state.set_state(NewPlaceFSM.enter_description)
+    await callback.answer()
 
 
-@router.message(NewPlaceFSM.want_to_add_to_database, F.text == "Нет")
+@router.callback_query(NewPlaceFSM.want_to_add_to_database, F.data == "no")
 async def user_dont_want_to_add_desc_handler(
-    message: Message, state: FSMContext, session: AsyncSession
+    callback: CallbackQuery, state: FSMContext, session: AsyncSession
 ):
     await state.set_state(UserFSM.start_state)
-    await message.answer(
+    await callback.message.answer(
         "Место не было добавлено в ваш список",
-        reply_markup=await get_user_keyboard(session, message.from_user.id),
+        reply_markup=await get_user_keyboard(session, callback.from_user.id),
     )
+    await callback.answer()
 
 
 @router.message(NewPlaceFSM.enter_description, F.text)
@@ -152,7 +152,7 @@ async def add_request_to_manager(
         await db.add_place_tags(session, place.get_info(), tags)
         await callback.answer("Место успешно добавлено")
         await callback.message.answer(
-            "Хотите добавить отзыв на место?", reply_markup=yes_no_kb
+            "Хотите добавить отзыв на место?", reply_markup=yes_no_inline
         )
         await state.set_state(NewPlaceFSM.want_to_add_review)
     except KeyError:
@@ -166,9 +166,9 @@ async def add_request_to_manager(
         )
 
 
-@router.message(NewPlaceFSM.want_to_add_review, F.text == "Да")
-async def want_to_add_review_handler(message: Message, state: FSMContext):
-    await message.answer(
+@router.callback_query(NewPlaceFSM.want_to_add_review, F.data == "yes")
+async def want_to_add_review_handler(callback: CallbackQuery, state: FSMContext):
+    await callback.message.answer(
         "Введите свою оценку месту от 1 до 10.", reply_markup=ReplyKeyboardRemove()
     )
     await state.set_state(NewPlaceFSM.enter_score)
@@ -212,11 +212,14 @@ async def wrong_comment_handler(message: Message):
     await message.answer("Вы можете оставить только текстовый комментарий.")
 
 
-@router.message(NewPlaceFSM.want_to_add_review, F.text == "Нет")
+@router.callback_query(NewPlaceFSM.want_to_add_review, F.data == "no")
 async def dont_want_to_add_review_handler(
-    message: Message, session: AsyncSession, state: FSMContext
+    callback: CallbackQuery, session: AsyncSession, state: FSMContext
 ):
-    await add_user_place_with_feedback(message, state, session, message.from_user.id)
+    await add_user_place_with_feedback(
+        callback.message, state, session, callback.from_user.id
+    )
+    await callback.answer()
 
 
 async def generate_final_answer(
