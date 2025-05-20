@@ -20,13 +20,14 @@ from sqlalchemy.ext.asyncio import (
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.exc import IntegrityError, NoResultFound
 
-from db_exceptions import UniqueConstraintError, ConstraintError
+from database.db_exceptions import UniqueConstraintError, ConstraintError
 
 engine: AsyncEngine
 async_session_maker: async_sessionmaker
 # Add channel by user_id and channel username
 # Delete channel by channel username
 # Paged select of connected channel
+#check channel
 
 
 def init_database() -> async_sessionmaker:
@@ -647,6 +648,13 @@ async def delete_channel(session: AsyncSession, channel_username: str):
         raise ValueError("This channel is not added")
     await session.commit()
 
+
+async def does_channel_exist(session: AsyncSession, channel_username: str) -> bool:
+    statement = (
+        select(exists(TelegramChannel).where(TelegramChannel.channel_username == channel_username))
+    )
+    result = await session.execute(statement)
+    return result.scalar_one()
 
 async def async_main() -> None:
     init_database()
