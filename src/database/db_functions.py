@@ -20,7 +20,7 @@ from sqlalchemy.ext.asyncio import (
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.exc import IntegrityError, NoResultFound
 
-from database.db_exceptions import UniqueConstraintError, ConstraintError
+from db_exceptions import UniqueConstraintError, ConstraintError
 
 engine: AsyncEngine
 async_session_maker: async_sessionmaker
@@ -852,6 +852,15 @@ async def delete_request(session: AsyncSession, request_id: int):
     if request is None:
         raise NoResultFound
     await session.delete(request)
+    await session.commit()
+
+
+# throws NoResultFound if given request is not in db (might have been deleted)
+async def delay_add_place_request(session: AsyncSession, request_id: int):
+    request = await session.get(AddPlaceRequest, request_id)
+    if request is None:
+        raise NoResultFound
+    request.is_operated = False
     await session.commit()
 
 
