@@ -266,7 +266,7 @@ async def add_user_place_with_feedback(
 ):
     data = await state.get_data()
     place: Place = data["place"]
-    keyboard = await get_user_keyboard(session, message.from_user.id)
+    keyboard = await get_user_keyboard(session, user_id)
     address: str = place.get_info()
     comment: str | None = data.get("comment", None)
     score: int | None = data.get("score", None)
