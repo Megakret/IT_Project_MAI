@@ -19,6 +19,7 @@ SUMMARIZE_COMMENTS_TAG = "summarize_comments"
 LEAVE_COMMENT_TAG = "leave_comment"
 SHOW_PLACES_BY_TAG = "search_places_by_tag"
 INSERT_PLACE_TAGS_TAG = "insert_place_tag"
+SUMMARIZE_DESCRIPTION_TAG = "summarize_description"
 suggest_place_kbs: list[InlineKeyboardMarkup] = []
 for i in range(SUGGEST_AMOUNT):
     suggest_place_kbs.append(
@@ -54,6 +55,11 @@ starter_admin_kb = ReplyKeyboardMarkup(
 
 show_comments_keyboard = InlineKeyboardMarkup(
     inline_keyboard=[
+        [
+            InlineKeyboardButton(
+                text="Пересказ описания", callback_data=SUMMARIZE_DESCRIPTION_TAG
+            )
+        ],
         [
             InlineKeyboardButton(
                 text="Показать комментарии", callback_data=GET_COMMENTS_TAG

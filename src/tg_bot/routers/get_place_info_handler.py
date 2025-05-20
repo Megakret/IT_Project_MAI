@@ -15,6 +15,7 @@ from tg_bot.ui_components.Paginator import PaginatorService
 from tg_bot.tg_exceptions import NoTextMessageException
 from api.geosuggest.place import Place
 from api.gpt.GptSummarize import GptSummarize
+from api.gpt.GptRetellingDescription import GptRetellingDescription
 import database.db_functions as db
 from database.db_exceptions import UniqueConstraintError
 from tg_bot.keyboards import (
@@ -25,6 +26,7 @@ from tg_bot.keyboards import (
     INDICATOR_CLICKED,
     SUMMARIZE_COMMENTS_TAG,
     LEAVE_COMMENT_TAG,
+    SUMMARIZE_DESCRIPTION_TAG,
 )
 from tg_bot.utils_and_validators import MessageIsTooLarge, validate_message_size
 
@@ -239,3 +241,16 @@ async def enter_comment(message: Message, state: FSMContext, session: AsyncSessi
             f"В вашем комментарие слишком много символов: {e.message_size}."
             f"Максимальное количество символов: {e.max_size}"
         )
+
+
+@router.callback_query(F.data == SUMMARIZE_DESCRIPTION_TAG)
+async def summarize_description(callback: CallbackQuery, state: State):
+    data = await state.get_data()
+    try:
+        description: str = data["description"]
+        reteller = GptRetellingDescription()
+        await callback.answer("Ожидайте...")
+        summarization: str = await reteller.retell_nac(description)
+        await callback.message.answer(summarization)
+    except KeyError:
+        await callback.answer("Что-то пошло не так. Напишите команду заново.")
