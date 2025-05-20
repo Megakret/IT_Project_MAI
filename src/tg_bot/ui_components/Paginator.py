@@ -17,6 +17,10 @@ class PaginatorService:
     pass
 
 
+class NoPaginatorFound(Exception):
+    pass
+
+
 # Pass in every public function additional args to function that gets paged data
 # argument message is just any message, so paginator service could send one by itself and start paginator
 class Paginator:
@@ -47,6 +51,9 @@ class Paginator:
         await self._message.edit_text(
             text, reply_markup=self._paginator_service.update_kb(page), **kwargs
         )
+
+    async def update(self, *args, **kwargs):
+        await self._update(self._current_page, *args, **kwargs)
 
     async def setup(self, message: Message, *args, **kwargs):
         self._current_page = 1
@@ -143,6 +150,14 @@ class PaginatorService:
             callback, state, *args, **kwargs
         )
         await paginator.show_prev_page(callback, *args, **kwargs)
+
+    async def update_paginator(self, state: FSMContext, *args, **kwargs):
+        data: dict = await state.get_data()
+        try:
+            current_paginator: Paginator = data["paginator" + self._postfix]
+            await current_paginator.update(*args, **kwargs)
+        except KeyError:
+            raise NoPaginatorFound
 
     @property
     def no_pages_message(self):
