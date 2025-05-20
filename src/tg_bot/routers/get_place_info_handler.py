@@ -5,6 +5,8 @@ from aiogram.fsm.context import FSMContext
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import NoResultFound
 from aiogram.fsm.state import State, StatesGroup
+
+from tg_bot.routers.user_fsm import UserFSM
 from tg_bot.tg_exceptions import NoTextMessageException
 from tg_bot.ui_components.GeosuggestSelector import (
     GeosuggestSelector,
@@ -29,6 +31,7 @@ from tg_bot.keyboards import (
     SUMMARIZE_DESCRIPTION_TAG,
 )
 from tg_bot.utils_and_validators import MessageIsTooLarge, validate_message_size
+from tg_bot.config import MAX_COMMENT_SIZE
 
 
 router = Router()
@@ -69,10 +72,9 @@ paginator_service = PaginatorService(
 )
 
 
-@router.message(F.text == "Найти место")
-@router.message(Command("get_place"))
+@router.message(F.text == "Найти место", UserFSM.start_state)
+@router.message(Command("get_place"), UserFSM.start_state)
 async def get_place_handler(message: Message, state: FSMContext):
-    await state.clear()
     await message.answer(
         "Чтобы выйти из команды, напишите /exit. Введите название места:"
     )
@@ -112,6 +114,7 @@ async def find_place_handler(
         db_res = await db.get_place_with_score(session, place.get_info())
         db_place: db.Place = db_res[0]
         score: int | None = db_res[1]
+        await state.update_data(description=db_place.desc)
         await callback.message.answer(
             await generate_place_answer(
                 session, db_place, score, callback.from_user.id
@@ -124,7 +127,7 @@ async def find_place_handler(
         )
 
 
-@router.callback_query(F.data == GET_COMMENTS_TAG)
+@router.callback_query(F.data == GET_COMMENTS_TAG, GetPlaceStates.choose_place)
 async def show_comments(
     callback: CallbackQuery, state: FSMContext, session: AsyncSession
 ):
@@ -141,7 +144,7 @@ async def show_comments(
         await callback.answer("Попробуйте ввести место еще раз")
 
 
-@router.callback_query(F.data == NEXT_PAGE + POSTFIX)
+@router.callback_query(F.data == NEXT_PAGE + POSTFIX, GetPlaceStates.choose_place)
 async def next_page(callback: CallbackQuery, state: FSMContext, session: AsyncSession):
     try:
         data: dict[str, any] = await state.get_data()
@@ -155,7 +158,7 @@ async def next_page(callback: CallbackQuery, state: FSMContext, session: AsyncSe
         await callback.answer("Попробуйте ввести место еще раз")
 
 
-@router.callback_query(F.data == PREV_PAGE + POSTFIX)
+@router.callback_query(F.data == PREV_PAGE + POSTFIX, GetPlaceStates.choose_place)
 async def next_page(callback: CallbackQuery, state: FSMContext, session: AsyncSession):
     try:
         data: dict[str, any] = await state.get_data()
@@ -169,7 +172,9 @@ async def next_page(callback: CallbackQuery, state: FSMContext, session: AsyncSe
         await callback.answer("Попробуйте ввести место еще раз")
 
 
-@router.callback_query(F.data == INDICATOR_CLICKED + POSTFIX)
+@router.callback_query(
+    F.data == INDICATOR_CLICKED + POSTFIX, GetPlaceStates.choose_place
+)
 async def indicator_clicked(
     callback: CallbackQuery, state: FSMContext, session: AsyncSession
 ):
@@ -185,7 +190,7 @@ async def indicator_clicked(
         await callback.answer("Попробуйте ввести место еще раз")
 
 
-@router.callback_query(F.data == SUMMARIZE_COMMENTS_TAG)
+@router.callback_query(F.data == SUMMARIZE_COMMENTS_TAG, GetPlaceStates.choose_place)
 async def summarize_comments(
     callback: CallbackQuery, state: FSMContext, session: AsyncSession
 ):
@@ -208,7 +213,7 @@ async def summarize_comments(
         await callback.answer("Пока что для этого места нет комментариев")
 
 
-@router.callback_query(F.data == LEAVE_COMMENT_TAG)
+@router.callback_query(F.data == LEAVE_COMMENT_TAG, GetPlaceStates.choose_place)
 async def pressed_leave_comment_button(callback: CallbackQuery, state: FSMContext):
     try:
         data = await state.get_data()
@@ -225,7 +230,7 @@ async def pressed_leave_comment_button(callback: CallbackQuery, state: FSMContex
 @router.message(GetPlaceStates.enter_comment, F.text)
 async def enter_comment(message: Message, state: FSMContext, session: AsyncSession):
     try:
-        comment = validate_message_size(message.text)
+        comment = validate_message_size(message.text, MAX_COMMENT_SIZE)
         data = await state.get_data()
         place: Place = data.get(PLACE_KEY)
         if place is None:
@@ -243,8 +248,8 @@ async def enter_comment(message: Message, state: FSMContext, session: AsyncSessi
         )
 
 
-@router.callback_query(F.data == SUMMARIZE_DESCRIPTION_TAG)
-async def summarize_description(callback: CallbackQuery, state: State):
+@router.callback_query(F.data == SUMMARIZE_DESCRIPTION_TAG, GetPlaceStates.choose_place)
+async def summarize_description(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     try:
         description: str = data["description"]

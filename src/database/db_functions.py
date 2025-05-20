@@ -27,7 +27,7 @@ async_session_maker: async_sessionmaker
 # Add channel by user_id and channel username
 # Delete channel by channel username
 # Paged select of connected channel
-#check channel
+# check channel
 
 
 def init_database() -> async_sessionmaker:
@@ -48,7 +48,7 @@ class User(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=False)
     name: Mapped[str] = mapped_column(unique=True)
-    rights: Mapped[int] = mapped_column(CheckConstraint("rights BETWEEN 1 and 3"))
+    rights: Mapped[int] = mapped_column(CheckConstraint("rights BETWEEN 1 and 4"))
     is_banned: Mapped[bool]
 
     user_places: Mapped[list["UserPlace"]] = relationship(
@@ -125,6 +125,14 @@ class TelegramChannel(Base):
     parent_user: Mapped["User"] = relationship(back_populates="user_channels")
 
 
+async def get_id_by_username(session: AsyncSession, username: str) -> int:
+    statement = select(User.id).where(User.name == username)
+    result = (await session.execute(statement=statement)).scalar_one_or_none()
+    if not result:
+        raise ValueError("Username is not found")
+    return result
+
+
 async def add_user(
     session: AsyncSession,
     id: int,
@@ -169,15 +177,82 @@ async def delete_user(session: AsyncSession, user_id: int) -> None:
     await session.commit()
 
 
+async def does_user_exist(session: AsyncSession, username: str) -> bool:
+    result = (
+        await session.execute(statement=select(User.name).where(User.name == username))
+    ).scalar_one_or_none()
+    return bool(result)
+
+
+async def delete_user_data_by_username(session: AsyncSession, username: str) -> None:
+    user_data = await session.execute(select(User.id).where(User.name == username))
+    id = user_data.scalar_one_or_none()
+    if not id:
+        raise ValueError(f"User with username {username} not found")
+    await delete_user(session, id)
+    await add_user(session, id, username, 1, True)
+    await session.commit()
+
+
 async def is_existing_user(session: AsyncSession, id: int) -> bool:
     statement = select(exists().where(User.id == id))
     is_existing = await session.execute(statement)
     return is_existing.scalar_one()
 
 
-async def is_manager(session: AsyncSession, id: int) -> bool:
+async def get_users_by_permission(
+    session: AsyncSession, page: int, places_per_page: int, permission: int
+) -> list[str]:
+
+    if permission < 3:
+        statement = (
+            select(User.name)
+            .where(User.rights == permission, User.is_banned == False)
+            .order_by(User.name)
+            .limit(places_per_page)
+            .offset((page - 1) * places_per_page)
+        )
+    else:
+        statement = (
+            select(User.name)
+            .where(User.rights >= permission, User.is_banned == False)
+            .order_by(User.name)
+            .limit(places_per_page)
+            .offset((page - 1) * places_per_page)
+        )
+
+    result = await session.execute(statement)
+    instance_list = list(result.scalars().all())
+    return instance_list
+
+
+async def get_banned_users(
+    session: AsyncSession, page: int, places_per_page: int
+) -> list[str]:
+    statement = (
+        select(User.name)
+        .where(User.is_banned == True)
+        .order_by(User.name)
+        .limit(places_per_page)
+        .offset((page - 1) * places_per_page)
+    )
+    result = await session.execute(statement)
+    instance_list = list(result.scalars().all())
+    return instance_list
+
+
+async def get_permisions(session: AsyncSession, id: int) -> int:
     result = await session.execute(statement=select(User.rights).where(User.id == id))
-    return result.scalar_one() >= 2
+    return result.scalar_one()
+
+
+async def is_manager(session: AsyncSession, id: int) -> bool:
+    return (await get_permisions(session, id)) >= 2
+
+
+async def get_user_rights(session: AsyncSession, id: int) -> int:
+    result = await session.execute(statement=select(User.rights).where(User.id == id))
+    return result.scalar_one()
 
 
 async def get_user_rights(session: AsyncSession, id: int) -> int:
@@ -186,8 +261,21 @@ async def get_user_rights(session: AsyncSession, id: int) -> int:
 
 
 async def is_admin(session: AsyncSession, id: int) -> bool:
-    result = await session.execute(statement=select(User.rights).where(User.id == id))
-    return result.scalar_one() == 3
+    return (await get_permisions(session, id)) >= 3
+
+
+async def is_owner(session: AsyncSession, id: int) -> bool:
+    return (await get_permisions(session, id)) == 4
+
+
+async def make_user(session: AsyncSession, username: str) -> None:
+    result = await session.execute(select(User).where(User.name == username))
+    user = result.scalar_one_or_none()
+
+    if user is None:
+        raise ValueError(f"User '{username}' not found")
+    user.rights = 1
+    await session.commit()
 
 
 async def make_manager(session: AsyncSession, username: str) -> None:
@@ -212,18 +300,44 @@ async def make_admin(session: AsyncSession, username: str) -> None:
 
 async def ban(session: AsyncSession, id: int) -> None:
     await session.execute(
-        statement=update(User).where(User.id == id).values(is_banned=True)
+        statement=update(User).where(User.id == id).values(is_banned=True, rights=1)
     )
+
+
+async def ban_by_username(session: AsyncSession, username: str) -> None:
+    await session.execute(
+        statement=update(User)
+        .where(User.name == username)
+        .values(is_banned=True, rights=1)
+    )
+    await session.commit()
 
 
 async def unban(session: AsyncSession, id: int) -> None:
     await session.execute(
         statement=update(User).where(User.id == id).values(is_banned=False)
     )
+    await session.commit()
+
+
+async def unban_by_username(session: AsyncSession, username: str) -> None:
+    await session.execute(
+        statement=update(User).where(User.name == username).values(is_banned=0)
+    )
+    await session.commit()
 
 
 async def is_user_banned(session: AsyncSession, user_id: int) -> bool:
     result = await session.execute(select(User.is_banned).where(User.id == user_id))
+    banned_status = result.scalar_one_or_none()
+
+    if banned_status is None:
+        return False
+    return banned_status
+
+
+async def is_username_banned(session: AsyncSession, username: str) -> bool:
+    result = await session.execute(select(User.is_banned).where(User.name == username))
     banned_status = result.scalar_one_or_none()
 
     if banned_status is None:
@@ -500,6 +614,28 @@ async def get_place_comments(
     ]
 
 
+async def get_comments_of_user(
+    session: AsyncSession, page: int, comments_per_page: int, username: str
+) -> list[Place, str, int]:
+    statement = (
+        select(UserPlace.comment, UserPlace.score, Place)
+        .join(User, User.id == UserPlace.fk_user_id)
+        .join(Place, Place.address == UserPlace.fk_place_address)
+        .where(User.name == username, UserPlace.comment.is_not(None))
+        .order_by(UserPlace.score.desc())
+        .limit(comments_per_page)
+        .offset((page - 1) * comments_per_page)
+    )
+
+    result = await session.execute(statement)
+    comments = result.all()
+    return [
+        (place_data, comment, score)
+        for comment, score, place_data in comments
+        if comment is not None
+    ]
+
+
 async def get_place_comments_all(
     session: AsyncSession, address: str
 ) -> list[tuple[int, str | None]]:
@@ -579,25 +715,33 @@ async def get_place_with_score(
 
 
 async def remove_review(session: AsyncSession, username: str, place_id: int) -> None:
-    statement = delete(UserPlace).where(
-        UserPlace.fk_user_id
-        == (
-            (
-                await session.execute(
-                    statement=select(User.id).where(User.name == username)
-                )
-            ).scalar_one()
-        ),
-        UserPlace.fk_place_address
-        == (
-            (
-                await session.execute(
-                    statement=select(Place.address).where(Place.id == place_id)
-                )
-            ).scalar_one()
-        ),
+    statement = (
+        delete(UserPlace)
+        .where(
+            UserPlace.fk_user_id
+            == (
+                (
+                    await session.execute(
+                        statement=select(User.id).where(User.name == username)
+                    )
+                ).scalar_one()
+            ),
+            UserPlace.fk_place_address
+            == (
+                (
+                    await session.execute(
+                        statement=select(Place.address).where(Place.id == place_id)
+                    )
+                ).scalar_one()
+            ),
+        )
+        .returning(UserPlace.fk_user_id)
     )
-    await session.execute(statement)
+    result = (await session.execute(statement)).scalar_one_or_none()
+    print(result)
+    if not result:
+        raise ValueError("User comment not found")
+    await session.commit()
 
 
 async def add_channel(session: AsyncSession, channel_username: str, user_id: int):
@@ -650,11 +794,14 @@ async def delete_channel(session: AsyncSession, channel_username: str):
 
 
 async def does_channel_exist(session: AsyncSession, channel_username: str) -> bool:
-    statement = (
-        select(exists(TelegramChannel).where(TelegramChannel.channel_username == channel_username))
+    statement = select(
+        exists(TelegramChannel).where(
+            TelegramChannel.channel_username == channel_username
+        )
     )
     result = await session.execute(statement)
     return result.scalar_one()
+
 
 async def async_main() -> None:
     init_database()

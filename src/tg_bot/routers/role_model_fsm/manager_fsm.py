@@ -28,6 +28,7 @@ class ManagerDeletePlaceFSM(ManagerFSM):
     enter_place_name = State()
     select_place = State()
 
+
 class ManagerUpdatePlaceFSM(ManagerFSM):
     enter_place_name = State()
     select_place = State()

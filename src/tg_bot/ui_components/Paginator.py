@@ -16,6 +16,7 @@ class NoMorePages(Exception):
 class PaginatorService:
     pass
 
+
 # Pass in every public function additional args to function that gets paged data
 # argument message is just any message, so paginator service could send one by itself and start paginator
 class Paginator:
@@ -24,11 +25,12 @@ class Paginator:
         items_per_page: int,
         get_data_by_page: Callable[[int, int], Awaitable[list[str]]],
         paginator_service: PaginatorService,
+        message: Message = None,
     ):
         self._get_data_by_page = get_data_by_page
         self._current_page = 1
         self._items_per_page = items_per_page
-        self._message: Message = None
+        self._message: Message = message
         self._paginator_service = paginator_service
 
     @property
@@ -42,11 +44,14 @@ class Paginator:
         text: str = "\n-----------\n".join(items)
         if text == "":
             raise NoMorePages(page)
-        await self._message.edit_text(text, reply_markup=self._paginator_service.update_kb(page), **kwargs)
+        await self._message.edit_text(
+            text, reply_markup=self._paginator_service.update_kb(page), **kwargs
+        )
+
     async def setup(self, message: Message, *args, **kwargs):
         self._current_page = 1
         try:
-            self._message = await message.answer("Загрузка...")
+            self._message = await message.answer("Загрузка...", **kwargs)
             await self._update(self._current_page, *args, **kwargs)
         except NoMorePages as e:
             await self._message.edit_text(self._paginator_service.no_pages_message)
@@ -78,6 +83,18 @@ class Paginator:
 class PaginatorService:
     def update_kb(self, page: int) -> InlineKeyboardMarkup:
         return generate_page_kb(page, self._postfix)
+
+    async def start_paginator_on_message(
+        self, message: Message, state: FSMContext, *args, **kwargs
+    ) -> None:
+        paginator = Paginator(
+            self._items_per_page, self._get_data_by_page, self, message
+        )
+        try:
+            await paginator._update(1, *args, **kwargs)
+            await state.update_data({("paginator" + self._postfix): paginator})
+        except:
+            await message.edit_text(self._no_pages_message)
 
     async def start_paginator(
         self, message: Message, state: FSMContext, *args, **kwargs

@@ -9,6 +9,10 @@ from sqlalchemy.exc import NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession
 from tg_bot.tg_exceptions import UserNotFound
 from database.db_functions import get_user_rights
+from sqlalchemy.exc import NoResultFound
+from sqlalchemy.ext.asyncio import AsyncSession
+from tg_bot.tg_exceptions import UserNotFound
+from database.db_functions import get_user_rights
 
 SUGGEST_AMOUNT: int = 5
 NEXT_PAGE = "next_page_"
@@ -46,7 +50,6 @@ starter_kb = ReplyKeyboardMarkup(keyboard=starter_buttons)
 
 starter_manager_kb = ReplyKeyboardMarkup(
     keyboard=starter_buttons + [[KeyboardButton(text="Панель менеджера")]],
-    resize_keyboard=True,
 )
 
 starter_admin_kb = ReplyKeyboardMarkup(
@@ -105,7 +108,6 @@ manager_kb = ReplyKeyboardMarkup(
         ],
         [KeyboardButton(text="Назад")],
     ],
-    resize_keyboard=True,
 )
 
 
@@ -132,7 +134,6 @@ channel_kb = ReplyKeyboardMarkup(
         ],
         [KeyboardButton(text="Помощь"), KeyboardButton(text="Назад")],
     ],
-    resize_keyboard=True,
 )
 
 place_kb = ReplyKeyboardMarkup(
@@ -151,26 +152,81 @@ yes_no_kb = ReplyKeyboardMarkup(
             KeyboardButton(text="Да"),
             KeyboardButton(text="Нет"),
         ]
-    ],resize_keyboard=True
+    ],
+    resize_keyboard=True,
 )
-place_manager_kb = ReplyKeyboardMarkup(keyboard=[
-    [
-        KeyboardButton(text="Добавить место"),
-        KeyboardButton(text="Редактировать место"),
-        KeyboardButton(text="Удалить место"),
-    ],
-    [
-        KeyboardButton(text="Найти место"),
-        KeyboardButton(text="Назад")
-    ],
-], resize_keyboard=True)
-back_kb = ReplyKeyboardMarkup(
+place_manager_kb = ReplyKeyboardMarkup(
     keyboard=[
         [
-            KeyboardButton(text="Назад")
-        ]
-    ], resize_keyboard=True
+            KeyboardButton(text="Добавить место"),
+            KeyboardButton(text="Редактировать место"),
+            KeyboardButton(text="Удалить место"),
+        ],
+        [KeyboardButton(text="Найти место"), KeyboardButton(text="Назад")],
+    ],
 )
+
+select_comment_deletion_mode_kb = ReplyKeyboardMarkup(
+    keyboard=[
+        [KeyboardButton(text="Поиск по месту")],
+        [KeyboardButton(text="Поиск по пользователю")],
+    ]
+)
+
+user_manipulation_admin_kb = ReplyKeyboardMarkup(
+    keyboard=[
+        [
+            KeyboardButton(text="Список пользователей"),
+            KeyboardButton(text="Забанить пользователя"),
+            KeyboardButton(text="Разбанить пользователя"),
+        ],
+        [
+            KeyboardButton(text="Удаление комментариев"),
+            KeyboardButton(text="Изменить роль пользователя"),
+        ],
+        [
+            KeyboardButton(text="Назад"),
+        ],
+    ]
+)
+
+yes_no_inline = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [
+            InlineKeyboardButton(text="Да", callback_data="yes"),
+            InlineKeyboardButton(text="Нет", callback_data="no"),
+        ]
+    ]
+)
+
+set_role_inline = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [InlineKeyboardButton(text="Пользователь", callback_data="user")],
+        [InlineKeyboardButton(text="Менеджер", callback_data="manager")],
+    ]
+)
+
+set_role_owner_inline = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [InlineKeyboardButton(text="Пользователь", callback_data="user")],
+        [InlineKeyboardButton(text="Менеджер", callback_data="manager")],
+        [InlineKeyboardButton(text="Админ", callback_data="admin")],
+    ]
+)
+
+chose_role_for_paginator_inline = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [InlineKeyboardButton(text="Пользователь", callback_data="user")],
+        [InlineKeyboardButton(text="Менеджер", callback_data="manager")],
+        [InlineKeyboardButton(text="Админ", callback_data="admin")],
+        [InlineKeyboardButton(text="Заблокированные", callback_data="banned")],
+    ]
+)
+
+back_kb = ReplyKeyboardMarkup(
+    keyboard=[[KeyboardButton(text="Назад")]], resize_keyboard=True
+)
+
 
 def generate_page_kb(page: int, postfix: str) -> InlineKeyboardMarkup:
     page_select_kb = InlineKeyboardMarkup(
@@ -190,7 +246,10 @@ def generate_page_kb(page: int, postfix: str) -> InlineKeyboardMarkup:
 async def get_user_keyboard(session: AsyncSession, id: int) -> ReplyKeyboardMarkup:
     try:
         right: int = await get_user_rights(session, id)
+        print(right)
         match right:
+            case 4:
+                return starter_admin_kb
             case 3:
                 return starter_admin_kb
             case 2:

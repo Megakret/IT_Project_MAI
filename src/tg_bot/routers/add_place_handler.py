@@ -6,6 +6,8 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import ReplyKeyboardRemove
 from aiogram import F
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from tg_bot.routers.user_fsm import UserFSM
 from api.geosuggest.place import Place
 from tg_bot.keyboards import (
     get_user_keyboard,
@@ -24,6 +26,8 @@ from tg_bot.ui_components.TagSelector import (
     TagSelector,
     TAG_DATA_KEY,
 )
+from tg_bot.tg_exceptions import NoTextMessageException, ScoreOutOfRange
+from tg_bot.filters.role_model_filters import IsAdmin, IsManager
 from tg_bot.tg_exceptions import (
     NoTextMessageException,
     ScoreOutOfRange,
@@ -46,40 +50,14 @@ class NewPlaceFSM(StatesGroup):
     select_tags = State()
 
 
-# temp start
-managers = {"NoyerXoper", "megakret"}
-admins = set()
-
-
-def get_permisions(user: str) -> int:
-    if user in admins:
-        return 2
-    if user in managers:
-        return 1
-    return 0
-
-
-def get_keyboard(user: str):
-    match get_permisions(user):
-        case 2:
-            return starter_admin_kb
-        case 1:
-            return starter_manager_kb
-        case _:
-            return starter_kb
-
-
-# temp end
-
-
 router = Router()
 
 geosuggest_selector = GeosuggestSelector(NewPlaceFSM.choose_place)
 tag_selector = TagSelector(selecting_state=NewPlaceFSM.select_tags, router=router)
 
 
-@router.message(F.text == "Добавить место")
-@router.message(Command("add_place"))
+@router.message(F.text == "Добавить место", UserFSM.start_state)
+@router.message(Command("add_place"), UserFSM.start_state)
 async def geosuggest_test(message: Message, state: FSMContext) -> None:
     await message.answer(
         "Чтобы выйти из команды, напишите /exit. Введите место для досуга: ",
@@ -105,8 +83,11 @@ async def check_place_existence_handler(
         session, place.get_info(), callback.from_user.id
     )
     if place_added_by_user:
-        await callback.message.answer("Вы уже добавляли это место")
-        await state.set_state(None)
+        await callback.message.answer(
+            "Вы уже добавляли это место",
+            reply_markup=await get_user_keyboard(session, callback.from_user.id),
+        )
+        await state.set_state(UserFSM.start_state)
     elif place_exists_in_base:
         await callback.message.answer(
             "Хотите оставить отзыв на место?", reply_markup=yes_no_kb
@@ -132,7 +113,7 @@ async def user_wants_to_add_desc_handler(message: Message, state: FSMContext):
 async def user_dont_want_to_add_desc_handler(
     message: Message, state: FSMContext, session: AsyncSession
 ):
-    await state.set_state(None)
+    await state.set_state(UserFSM.start_state)
     await message.answer(
         "Место не было добавлено в ваш список",
         reply_markup=await get_user_keyboard(session, message.from_user.id),
@@ -179,7 +160,7 @@ async def add_request_to_manager(
         await callback.answer("Что-то пошло не так, попробуйте ввести команду снова")
     except UniqueConstraintError as e:
         print(e.message)
-        await state.set_state(None)
+        await state.set_state(UserFSM.start_state)
         await callback.answer(
             "Извините, похоже, пока вы добавляли место, кто-то другой добавил его быстрее вас."
         )
@@ -302,7 +283,7 @@ async def add_user_place_with_feedback(
             "Вы уже добавляли это место",
             reply_markup=keyboard,
         )
-    await state.set_state(None)
+    await state.set_state(UserFSM.start_state)
 
 
 @router.message(Command("fun"))
