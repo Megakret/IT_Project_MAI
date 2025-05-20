@@ -59,6 +59,10 @@ class User(Base):
         back_populates="parent_user"
     )
 
+    user_add_place_requests: Mapped[list["AddPlaceRequest"]] = relationship(
+        back_populates="parent_user"
+    )
+
 
 class Place(Base):
     __tablename__ = "place"
@@ -123,6 +127,18 @@ class TelegramChannel(Base):
     fk_user_id: Mapped[int] = mapped_column(ForeignKey(User.id))
 
     parent_user: Mapped["User"] = relationship(back_populates="user_channels")
+
+
+class AddPlaceRequest(Base):
+    __tablename__ = "add_place_request"
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    fk_user_id: Mapped[int] = mapped_column(ForeignKey(User.id))
+    place_name: Mapped[str]
+    address: Mapped[str]
+    description: Mapped[str]
+    is_operated: Mapped[bool]
+
+    parent_user: Mapped["User"] = relationship(back_populates="user_add_place_requests")
 
 
 async def get_id_by_username(session: AsyncSession, username: str) -> int:
@@ -801,6 +817,42 @@ async def does_channel_exist(session: AsyncSession, channel_username: str) -> bo
     )
     result = await session.execute(statement)
     return result.scalar_one()
+
+
+async def add_place_request(
+    session: AsyncSession, user_id: int, place_name: str, address: str, description: str
+):
+    session.add(
+        AddPlaceRequest(
+            fk_user_id=user_id,
+            place_name=place_name,
+            address=address,
+            description=description,
+            is_operated=False,
+        )
+    )
+    await session.commit()
+
+
+# throws NoResultFound from sqlalchemy.exc if no requests
+async def get_first_request(session: AsyncSession) -> AddPlaceRequest:
+    statement = (
+        select(AddPlaceRequest).where(AddPlaceRequest.is_operated == False).limit(1)
+    )
+    result = await session.execute(statement)
+    request = result.scalar_one()
+    request.is_operated = True
+    await session.commit()
+    return request
+
+
+# throws NoResultFound if given request is not in db (might have been deleted)
+async def delete_request(session: AsyncSession, request_id: int):
+    request: AddPlaceRequest = await session.get(AddPlaceRequest, request_id)
+    if request is None:
+        raise NoResultFound
+    await session.delete(request)
+    await session.commit()
 
 
 async def async_main() -> None:
