@@ -379,13 +379,22 @@ async def change_role_input_name(
             parse_mode="MARKDOWN",
         )
         return
-    if await db.is_owner(session, message.from_user.id):
+    is_it_owner = await db.is_owner(session, message.from_user.id)
+    is_targert_admin = await db.is_admin(
+        session, await db.get_id_by_username(session, message.text[1:])
+    )
+    if not is_it_owner and is_targert_admin:
+        await message.answer(
+            "Только владельцы могут менять роли админов! Для выхода пропишите /exit"
+        )
+        return
+    if is_it_owner:
         await message.answer("Выберите роль:", reply_markup=set_role_owner_inline)
-        await state.set_data({"is_owner": True, "username": message.text})
+        await state.update_data({"is_owner": True, "username": message.text})
         await state.set_state(UserManipulationFSM.select_role_state)
     else:
         await message.answer("Выберите роль:", reply_markup=set_role_inline)
-        await state.set_data({"is_owner": False, "username": message.text})
+        await state.update_data({"is_owner": False, "username": message.text})
         await state.set_state(UserManipulationFSM.select_role_state)
 
 

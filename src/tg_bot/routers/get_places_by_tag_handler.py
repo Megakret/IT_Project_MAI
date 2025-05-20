@@ -27,6 +27,7 @@ PLACES_PER_PAGE = 4
 
 class GetPlaceByTagFSM(StatesGroup):
     selecting_tag = State()
+    watch_places = State()
 
 
 tag_selector = TagSelector(
@@ -83,7 +84,7 @@ async def show_places(
         await callback.answer()
     except NoTagException:
         await callback.answer("Вы не выбрали ни одного тега")
-    await state.set_state(None)
+    await state.set_state(GetPlaceByTagFSM.watch_places)
 
 
 @router.callback_query(F.data == SHOW_PLACES_BY_TAG, UserFSM.start_state)
@@ -94,7 +95,7 @@ async def show_places_invalid(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
 
 
-@router.callback_query(F.data == NEXT_PAGE + POSTFIX, UserFSM.start_state)
+@router.callback_query(F.data == NEXT_PAGE + POSTFIX, GetPlaceByTagFSM.watch_places)
 async def next_page(callback: CallbackQuery, state: FSMContext, session: AsyncSession):
     data = await state.get_data()
     try:
@@ -106,7 +107,7 @@ async def next_page(callback: CallbackQuery, state: FSMContext, session: AsyncSe
         await callback.answer("Что-то пошло не так, попробуйте заново ввести команду")
 
 
-@router.callback_query(F.data == PREV_PAGE + POSTFIX, UserFSM.start_state)
+@router.callback_query(F.data == PREV_PAGE + POSTFIX, GetPlaceByTagFSM.watch_places)
 async def prev_page(callback: CallbackQuery, state: FSMContext, session: AsyncSession):
     data = await state.get_data()
     try:
@@ -118,7 +119,9 @@ async def prev_page(callback: CallbackQuery, state: FSMContext, session: AsyncSe
         await callback.answer("Что-то пошло не так, попробуйте заново ввести команду")
 
 
-@router.callback_query(F.data == INDICATOR_CLICKED + POSTFIX, UserFSM.start_state)
+@router.callback_query(
+    F.data == INDICATOR_CLICKED + POSTFIX, GetPlaceByTagFSM.watch_places
+)
 async def prev_page(callback: CallbackQuery, state: FSMContext, session: AsyncSession):
     data = await state.get_data()
     try:

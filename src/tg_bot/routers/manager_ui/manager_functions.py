@@ -7,7 +7,6 @@ from tg_bot.routers.channel_fetch_router import (
     remove_channel,
 )
 from tg_bot.routers.manager_ui.manager import ManagerFSM
-from tg_bot.routers.role_model_fsm.admin_fsm import *
 from tg_bot.routers.role_model_fsm.manager_fsm import *
 from tg_bot.ui_components.Paginator import PaginatorService
 from sqlalchemy.ext.asyncio import AsyncSession

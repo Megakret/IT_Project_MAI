@@ -50,7 +50,6 @@ starter_kb = ReplyKeyboardMarkup(keyboard=starter_buttons)
 
 starter_manager_kb = ReplyKeyboardMarkup(
     keyboard=starter_buttons + [[KeyboardButton(text="Панель менеджера")]],
-    resize_keyboard=True,
 )
 
 starter_admin_kb = ReplyKeyboardMarkup(
@@ -109,7 +108,6 @@ manager_kb = ReplyKeyboardMarkup(
         ],
         [KeyboardButton(text="Назад")],
     ],
-    resize_keyboard=True,
 )
 
 
@@ -136,7 +134,6 @@ channel_kb = ReplyKeyboardMarkup(
         ],
         [KeyboardButton(text="Помощь"), KeyboardButton(text="Назад")],
     ],
-    resize_keyboard=True,
 )
 
 place_kb = ReplyKeyboardMarkup(
@@ -167,10 +164,6 @@ place_manager_kb = ReplyKeyboardMarkup(
         ],
         [KeyboardButton(text="Найти место"), KeyboardButton(text="Назад")],
     ],
-    resize_keyboard=True,
-)
-back_kb = ReplyKeyboardMarkup(
-    keyboard=[[KeyboardButton(text="Назад")]], resize_keyboard=True
 )
 
 select_comment_deletion_mode_kb = ReplyKeyboardMarkup(

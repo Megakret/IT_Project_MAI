@@ -9,7 +9,6 @@ from tg_bot.routers.channel_fetch_router import (
     remove_channel,
 )
 from tg_bot.routers.manager_ui.manager import ManagerFSM
-from tg_bot.routers.role_model_fsm.admin_fsm import *
 from tg_bot.routers.role_model_fsm.manager_fsm import *
 from tg_bot.routers.manager_ui.manager_functions import *
 
@@ -63,21 +62,21 @@ async def remove_channel_action_manager(
     await remove_channel_action(message, state, ManagerFSM.channel_state, session)
 
 
-@router.callback_query(F.data == NEXT_PAGE + POSTFIX)
+@router.callback_query(F.data == NEXT_PAGE + POSTFIX, ManagerFSM.channel_state)
 async def next_page_channel_action(
     callback: CallbackQuery, state: FSMContext, session: AsyncSession
 ):
     await channel_paginator_service.show_next_page(callback, state, session)
 
 
-@router.callback_query(F.data == PREV_PAGE + POSTFIX)
+@router.callback_query(F.data == PREV_PAGE + POSTFIX, ManagerFSM.channel_state)
 async def prev_page_channel_action(
     callback: CallbackQuery, state: FSMContext, session: AsyncSession
 ):
     await channel_paginator_service.show_prev_page(callback, state, session)
 
 
-@router.callback_query(F.data == INDICATOR_CLICKED + POSTFIX)
+@router.callback_query(F.data == INDICATOR_CLICKED + POSTFIX, ManagerFSM.channel_state)
 async def indicator_clicked(
     callback: CallbackQuery, state: FSMContext, session: AsyncSession
 ):

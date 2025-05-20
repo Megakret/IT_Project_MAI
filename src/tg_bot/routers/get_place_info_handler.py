@@ -31,6 +31,7 @@ from tg_bot.keyboards import (
     SUMMARIZE_DESCRIPTION_TAG,
 )
 from tg_bot.utils_and_validators import MessageIsTooLarge, validate_message_size
+from tg_bot.config import MAX_COMMENT_SIZE
 
 
 router = Router()
@@ -74,7 +75,6 @@ paginator_service = PaginatorService(
 @router.message(F.text == "Найти место", UserFSM.start_state)
 @router.message(Command("get_place"), UserFSM.start_state)
 async def get_place_handler(message: Message, state: FSMContext):
-    await state.clear()
     await message.answer(
         "Чтобы выйти из команды, напишите /exit. Введите название места:"
     )
@@ -114,6 +114,7 @@ async def find_place_handler(
         db_res = await db.get_place_with_score(session, place.get_info())
         db_place: db.Place = db_res[0]
         score: int | None = db_res[1]
+        await state.update_data(description=db_place.desc)
         await callback.message.answer(
             await generate_place_answer(
                 session, db_place, score, callback.from_user.id
@@ -229,7 +230,7 @@ async def pressed_leave_comment_button(callback: CallbackQuery, state: FSMContex
 @router.message(GetPlaceStates.enter_comment, F.text)
 async def enter_comment(message: Message, state: FSMContext, session: AsyncSession):
     try:
-        comment = validate_message_size(message.text)
+        comment = validate_message_size(message.text, MAX_COMMENT_SIZE)
         data = await state.get_data()
         place: Place = data.get(PLACE_KEY)
         if place is None:
@@ -247,8 +248,8 @@ async def enter_comment(message: Message, state: FSMContext, session: AsyncSessi
         )
 
 
-@router.callback_query(F.data == SUMMARIZE_DESCRIPTION_TAG)
-async def summarize_description(callback: CallbackQuery, state: State):
+@router.callback_query(F.data == SUMMARIZE_DESCRIPTION_TAG, GetPlaceStates.choose_place)
+async def summarize_description(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     try:
         description: str = data["description"]

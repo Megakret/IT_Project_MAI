@@ -8,7 +8,7 @@ class AdminFSM(StatesGroup):
     user_manipulation_state = State()
 
 
-class ChannelFSM(StatesGroup):
+class AdminChannelFSM(StatesGroup):
     add_channel_state = State()
     remove_channel_state = State()
 
