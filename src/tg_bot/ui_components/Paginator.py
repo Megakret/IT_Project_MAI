@@ -133,6 +133,7 @@ class PaginatorService:
         paginator: Paginator = await self._prepare_paginator(
             callback, state, *args, **kwargs
         )
+        await paginator.update(*args, **kwargs)
         await paginator.indicator_clicked(callback)
 
     async def show_next_page(
