@@ -20,7 +20,7 @@ from sqlalchemy.ext.asyncio import (
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.exc import IntegrityError, NoResultFound
 
-from database.db_exceptions import UniqueConstraintError, ConstraintError
+from db_exceptions import UniqueConstraintError, ConstraintError
 
 engine: AsyncEngine
 async_session_maker: async_sessionmaker
@@ -620,6 +620,7 @@ async def add_channel(session: AsyncSession, channel_username: str, user_id: int
     else:
         await session.commit()
 
+
 # returns pair of channel_username username of person who added channel
 async def get_paged_channels(
     session: AsyncSession, page: int, channels_per_page: int
@@ -633,6 +634,18 @@ async def get_paged_channels(
     result = await session.execute(statement)
     instance_list = [row.tuple() for row in result.all()]
     return instance_list
+
+
+async def delete_channel(session: AsyncSession, channel_username: str):
+    statement = (
+        delete(TelegramChannel)
+        .where(TelegramChannel.channel_username == channel_username)
+        .returning(TelegramChannel.id)
+    )
+    result = await session.execute(statement)
+    if result.scalar_one_or_none is None:
+        raise ValueError("This channel is not added")
+    await session.commit()
 
 
 async def async_main() -> None:
