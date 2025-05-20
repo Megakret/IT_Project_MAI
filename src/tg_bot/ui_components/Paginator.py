@@ -1,7 +1,6 @@
 from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery
 from tg_bot.keyboards import generate_page_kb
-import tg_bot.aiogram_coros as utils
 from typing import Callable, Awaitable
 from aiogram.fsm.context import FSMContext
 from aiogram.filters import Command

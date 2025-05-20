@@ -5,7 +5,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from api.geosuggest.geosuggest import GeosuggestResult, Geosuggest
 from api.geosuggest.place import Place
-from tg_bot.aiogram_coros import message_sender_wrap
+from tg_bot.utils_and_validators import message_sender_wrap
 from tg_bot.keyboards import suggest_place_kbs
 from tg_bot.tg_exceptions import NoTextMessageException
 

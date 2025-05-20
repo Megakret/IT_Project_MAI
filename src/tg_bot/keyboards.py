@@ -5,6 +5,10 @@ from aiogram.types import (
     KeyboardButton,
 )
 from aiogram.utils.keyboard import InlineKeyboardBuilder
+from sqlalchemy.exc import NoResultFound
+from sqlalchemy.ext.asyncio import AsyncSession
+from tg_bot.tg_exceptions import UserNotFound
+from database.db_functions import get_user_rights
 
 SUGGEST_AMOUNT: int = 5
 NEXT_PAGE = "next_page_"
@@ -139,11 +143,34 @@ place_kb = ReplyKeyboardMarkup(
             KeyboardButton(text="Найти место"),
         ],
         [KeyboardButton(text="Помощь"), KeyboardButton(text="Назад")],
-    ]
+    ],
 )
-
-place_manager_kb = ReplyKeyboardMarkup(keyboard=[])
-
+yes_no_kb = ReplyKeyboardMarkup(
+    keyboard=[
+        [
+            KeyboardButton(text="Да"),
+            KeyboardButton(text="Нет"),
+        ]
+    ],resize_keyboard=True
+)
+place_manager_kb = ReplyKeyboardMarkup(keyboard=[
+    [
+        KeyboardButton(text="Добавить место"),
+        KeyboardButton(text="Редактировать место"),
+        KeyboardButton(text="Удалить место"),
+    ],
+    [
+        KeyboardButton(text="Найти место"),
+        KeyboardButton(text="Назад")
+    ],
+], resize_keyboard=True)
+back_kb = ReplyKeyboardMarkup(
+    keyboard=[
+        [
+            KeyboardButton(text="Назад")
+        ]
+    ], resize_keyboard=True
+)
 
 def generate_page_kb(page: int, postfix: str) -> InlineKeyboardMarkup:
     page_select_kb = InlineKeyboardMarkup(
@@ -158,3 +185,17 @@ def generate_page_kb(page: int, postfix: str) -> InlineKeyboardMarkup:
         ]
     )
     return page_select_kb
+
+
+async def get_user_keyboard(session: AsyncSession, id: int) -> ReplyKeyboardMarkup:
+    try:
+        right: int = await get_user_rights(session, id)
+        match right:
+            case 3:
+                return starter_admin_kb
+            case 2:
+                return starter_manager_kb
+            case 1:
+                return starter_kb
+    except NoResultFound as e:
+        raise UserNotFound("While getting user's rights he was not found.")
