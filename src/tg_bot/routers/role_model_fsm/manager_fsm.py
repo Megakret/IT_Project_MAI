@@ -7,7 +7,7 @@ class ManagerFSM(StatesGroup):
     place_state = State()
 
 
-class ChannelFSM(StatesGroup):
+class ManagerChannelFSM(StatesGroup):
     add_channel_state = State()
     remove_channel_state = State()
 
@@ -33,3 +33,13 @@ class ManagerUpdatePlaceFSM(ManagerFSM):
     enter_place_name = State()
     select_place = State()
     enter_new_description = State()
+
+
+class ManagerPlaceRequestsFSM(ManagerFSM):
+    confirmation = State()
+    looking_at_request = State()
+    confirmation_of_acception = State()
+    confirmation_of_dismiss = State()
+    edit_start = State()
+    waiting_for_edited_description = State()
+    confirmation_of_description = State()
