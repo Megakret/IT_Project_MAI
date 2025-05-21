@@ -1,4 +1,9 @@
-from aiogram.types import Message, CallbackQuery, ReplyKeyboardMarkup
+from aiogram.types import (
+    Message,
+    CallbackQuery,
+    ReplyKeyboardMarkup,
+    ReplyKeyboardRemove,
+)
 from aiogram.fsm.state import State
 from aiogram.fsm.context import FSMContext
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -20,6 +25,9 @@ def __form_message_for_manager(answer: db.AddPlaceRequest):
 async def show_confirmation_menu(
     message: Message, state: FSMContext, next_state: State
 ) -> None:
+    await message.answer(
+        "Загрузка... Для выхода пропишите /exit", reply_markup=ReplyKeyboardRemove()
+    )
     await message.answer(
         "Вы уверены, что хотите перейти в режим обработки запросов пользователей?",
         reply_markup=yes_no_inline,

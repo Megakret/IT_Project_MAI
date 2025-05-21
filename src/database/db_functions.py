@@ -629,7 +629,7 @@ async def get_place_comments(
     result = await session.execute(statement)
     comments = result.all()
     return [
-        ("@" + username, comment, score)
+        (username, comment, score)
         for username, comment, score in comments
         if comment is not None
     ]
@@ -879,7 +879,9 @@ async def delay_add_place_request(session: AsyncSession, request_id: int):
 async def update_place_description(
     session: AsyncSession, address: str, description: str
 ):
-    result = await session.execute(statement=select(Place).where(Place.address == address))
+    result = await session.execute(
+        statement=select(Place).where(Place.address == address)
+    )
     place = result.scalar_one()
     place.desc = description
     await session.commit()
