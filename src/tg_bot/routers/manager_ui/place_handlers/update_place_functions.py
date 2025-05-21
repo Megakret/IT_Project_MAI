@@ -7,8 +7,6 @@ from tg_bot.tg_exceptions import PlaceNotFound
 from tg_bot.keyboards import (
     back_kb,
     update_place_kb,
-    UPDATE_TAGS_TAG,
-    SHOW_UPDATE_TAGS_TAG,
     update_place_tags_kb,
 )
 import database.db_functions as db
