@@ -13,6 +13,7 @@ from tg_bot.routers.admin_ui.admin_request import router as admin_request_router
 from tg_bot.routers.admin_ui.admin_user_control import (
     router as admin_user_control_router,
 )
+from tg_bot.routers.admin_ui.admin_place import router as admin_place_router
 from tg_bot.routers.channel_fetch_router import router as manager_channel_router
 from tg_bot.routers.manager_ui.manager import router as manager_router
 from tg_bot.routers.manager_ui.manager_channel import router as manager_router_channel
@@ -20,6 +21,7 @@ from tg_bot.routers.manager_ui.manager_place import router as manager_router_pla
 from tg_bot.routers.manager_ui.manager_requests import router as manager_request_router
 from tg_bot.routers.main_user_router import router as main_user_router
 from tg_bot.routers.main_user_router import initialize_user_routers
+from tg_bot.routers.admin_ui.admin_place import init_admin_place_panel
 from tg_bot.routers.manager_ui.manager_place import init_manager_place_panel
 
 
@@ -38,7 +40,9 @@ async def main() -> None:
     dp.include_router(manager_router)
     dp.include_router(manager_router_channel)
     dp.include_router(manager_request_router)
+    init_admin_place_panel()
     init_manager_place_panel()
+    dp.include_router(admin_place_router)
     dp.include_router(manager_router_place)
     initialize_user_routers(session_maker)
     dp.include_router(main_user_router)

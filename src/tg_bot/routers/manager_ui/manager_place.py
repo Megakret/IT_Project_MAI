@@ -8,13 +8,13 @@ from tg_bot.routers.channel_fetch_router import (
     get_channels,
     remove_channel,
 )
-from tg_bot.routers.manager_ui.manager import ManagerFSM
+from tg_bot.routers.role_model_fsm.manager_fsm import ManagerFSM
 from tg_bot.keyboards import place_manager_kb
 from tg_bot.routers.role_model_fsm.manager_fsm import *
 from tg_bot.routers.manager_ui.place_handlers.manager_get_place_handlers import (
     router as get_place_router,
 )
-from tg_bot.routers.manager_ui.manager_add_place_handlers import (
+from tg_bot.routers.manager_ui.place_handlers.manager_add_place_handlers import (
     router as add_place_router,
 )
 from tg_bot.routers.manager_ui.place_handlers.manager_delete_place_handlers import (
