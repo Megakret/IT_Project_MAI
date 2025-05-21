@@ -1,7 +1,6 @@
 from tg_bot.DispatcherHandler import DispatcherHandler
-from aiogram import F, Router, Bot
+from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
-from aiogram.filters import Command, or_f
 from aiogram.types import (
     Message,
     ReplyKeyboardRemove,
@@ -10,27 +9,12 @@ from aiogram.types import (
 
 from tg_bot.keyboards import (
     yes_no_inline,
-    set_role_inline,
-    set_role_owner_inline,
     user_manipulation_admin_kb,
-    chose_role_for_paginator_inline,
-    back_kb,
-    select_comment_deletion_mode_kb,
-    NEXT_PAGE,
-    PREV_PAGE,
-    INDICATOR_CLICKED,
 )
 from tg_bot.routers.role_model_fsm.admin_fsm import AdminFSM, UserManipulationFSM
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.exc import NoResultFound
 
 from tg_bot.routers.admin_ui.user_manipulation.functions import validate_username
-from tg_bot.ui_components.Paginator import PaginatorService
-from tg_bot.ui_components.GeosuggestSelector import (
-    GeosuggestSelector,
-    KEYBOARD_PREFIX,
-    PLACE_KEY,
-)
 import database.db_functions as db
 
 router = Router()
@@ -64,6 +48,9 @@ async def ban_input(message: Message, state: FSMContext, session: AsyncSession):
         await message.answer(
             f"Пользователь {text} не найден.\nДля выхода пропишите /exit"
         )
+        return
+    if await db.is_owner(session, await db.get_id_by_username(session, text[1:])):
+        await message.answer(f"Нельзя забанить владельца!\nДля выхода пропишите /exit")
         return
     if not await db.is_owner(session, message.from_user.id) and await db.is_admin(
         session, await db.get_id_by_username(session, text[1:])
