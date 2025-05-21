@@ -181,6 +181,7 @@ async def want_to_add_review_handler(callback: CallbackQuery, state: FSMContext)
         "Введите свою оценку месту от 1 до 10.", reply_markup=ReplyKeyboardRemove()
     )
     await state.set_state(NewPlaceFSM.enter_score)
+    await callback.answer()
 
 
 @router.message(NewPlaceFSM.enter_score, F.text)

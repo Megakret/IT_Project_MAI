@@ -3,14 +3,20 @@ from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from tg_bot.ui_components.TagSelector import TagSelector
 from tg_bot.routers.role_model_fsm.manager_fsm import (
     ManagerPlaceRequestsFSM,
     ManagerFSM,
 )
-from tg_bot.keyboards import manager_kb
+from tg_bot.keyboards import manager_kb, INSERT_PLACE_TAGS_TAG
 import tg_bot.routers.manager_ui.manager_requests_function as funcs
 
 router = Router()
+tag_selector = TagSelector(
+    selecting_state=ManagerPlaceRequestsFSM.edit_tags_input,
+    router=router,
+    write_messages=False,
+)
 
 
 @router.message(F.text == "Запросы на добавление мест", ManagerFSM.start_state)
@@ -88,32 +94,40 @@ async def handle_no_of_confirmation_of_acceptance(
     )
 
 
-@router.callback_query(
-    F.data == "yes", ManagerPlaceRequestsFSM.confirmation_of_acception
-)
+@router.callback_query(F.data == "yes", ManagerPlaceRequestsFSM.confirmation_of_dismiss)
 async def handle_yes_of_confirmation_of_dismiss(
     callback: CallbackQuery, state: FSMContext, session: AsyncSession
 ):
     await funcs.handle_dismiss_confirmation_yes(
-        callback, state, session, ManagerPlaceRequestsFSM.looking_at_request
+        callback,
+        state,
+        session,
+        ManagerPlaceRequestsFSM.looking_at_request,
+        ManagerFSM.start_state,
+        manager_kb,
     )
 
 
-@router.callback_query(
-    F.data == "no", ManagerPlaceRequestsFSM.confirmation_of_acception
-)
+@router.callback_query(F.data == "no", ManagerPlaceRequestsFSM.confirmation_of_dismiss)
 async def handle_no_of_confirmation_of_dissmiss(
     callback: CallbackQuery, state: FSMContext, session: AsyncSession
 ):
     await funcs.handle_dismiss_confirmation_no(
-        callback, state, session, ManagerPlaceRequestsFSM.looking_at_request
+        callback,
+        state,
+        session,
+        ManagerPlaceRequestsFSM.looking_at_request,
+        ManagerFSM.start_state,
+        manager_kb,
     )
 
 
 @router.callback_query(
     F.data == "edit_desc", ManagerPlaceRequestsFSM.looking_at_request
 )
-async def hande_edit(callback: CallbackQuery, state: FSMContext, session: AsyncSession):
+async def handle_edit(
+    callback: CallbackQuery, state: FSMContext, session: AsyncSession
+):
     await funcs.handle_edit(
         callback, state, session, ManagerPlaceRequestsFSM.edit_start
     )
@@ -153,7 +167,7 @@ async def handle_yes_desc(
     callback: CallbackQuery, state: FSMContext, session: AsyncSession
 ):
     await funcs.handle_confirm_new_description(
-        callback, state, session, ManagerPlaceRequestsFSM.start_state
+        callback, state, session, ManagerPlaceRequestsFSM.looking_at_request
     )
 
 
@@ -165,6 +179,26 @@ async def handle_no_desc(
 ):
     await funcs.handle_dismiss_new_description(
         callback, state, session, ManagerPlaceRequestsFSM.edit_start
+    )
+
+
+@router.callback_query(F.data == "edit_tags")
+async def edit_tags_start(
+    callback: CallbackQuery, state: FSMContext, session: AsyncSession
+):
+    await funcs.handle_edit_tags_start(
+        callback, state, session, ManagerPlaceRequestsFSM.edit_tags_input, tag_selector
+    )
+
+
+@router.callback_query(
+    ManagerPlaceRequestsFSM.edit_tags_input, F.data == INSERT_PLACE_TAGS_TAG
+)
+async def tags_selected(
+    callback: CallbackQuery, state: FSMContext, session: AsyncSession
+):
+    await funcs.handle_tags_complete_button(
+        callback, state, session, ManagerPlaceRequestsFSM.looking_at_request
     )
 
 
