@@ -6,6 +6,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import NoResultFound
 from aiogram.fsm.state import State, StatesGroup
 
+from tg_bot.tg_exceptions import ScoreOutOfRange
+from api.geosuggest.place import Place
+from api.gpt.GptSummarize import GptSummarize
+from api.gpt.GptRetellingDescription import GptRetellingDescription
+
 from tg_bot.routers.user_fsm import UserFSM
 from tg_bot.ui_components.GeosuggestSelector import (
     GeosuggestSelector,
@@ -13,10 +18,6 @@ from tg_bot.ui_components.GeosuggestSelector import (
     PLACE_KEY,
 )
 from tg_bot.ui_components.Paginator import PaginatorService
-from tg_bot.tg_exceptions import ScoreOutOfRange
-from api.geosuggest.place import Place
-from api.gpt.GptSummarize import GptSummarize
-from api.gpt.GptRetellingDescription import GptRetellingDescription
 import database.db_functions as db
 from database.db_exceptions import UniqueConstraintError
 from tg_bot.keyboards import (
@@ -28,6 +29,8 @@ from tg_bot.keyboards import (
     SUMMARIZE_COMMENTS_TAG,
     LEAVE_COMMENT_TAG,
     SUMMARIZE_DESCRIPTION_TAG,
+    back_kb,
+    get_user_keyboard,
 )
 from tg_bot.utils_and_validators import MessageIsTooLarge, validate_message_size
 from tg_bot.config import MAX_COMMENT_SIZE
@@ -61,7 +64,7 @@ async def get_comments_for_paginator(
     if usernames_comments_scores is None:
         return []
     paged_data: list[str] = map(
-        lambda x: f"{x[0]}\n{x[1]}\nОценка месту: {x[2]}", usernames_comments_scores
+        lambda x: f"@{x[0]}\n{x[1]}\nОценка месту: {x[2]}", usernames_comments_scores
     )
     return list(paged_data)
 
@@ -76,15 +79,10 @@ paginator_service = PaginatorService(
 @router.message(Command("get_place"), UserFSM.start_state)
 async def get_place_handler(message: Message, state: FSMContext, session: AsyncSession):
     await message.answer(
-        "Чтобы выйти из команды, напишите /exit. Введите название места:"
+        "Чтобы выйти из команды, напишите /exit. Введите название места:",
+        reply_markup=back_kb,
     )
     await state.set_state(GetPlaceStates.enter_place)
-    try:
-        await paginator_service.update_paginator(
-            state, "Достопримечательность · Калининград, Ленинградский район", session
-        )
-    except:
-        pass
 
 
 @router.message(GetPlaceStates.enter_place, F.text)
@@ -101,11 +99,11 @@ async def generate_place_answer(
         answer += f"Айди места: {db_place.id}\n"
     if score is None:
         return answer + (
-            f"{db_place.name}\n{db_place.address}\n{db_place.desc}\nВы пока не оценили это место"
+            f"Название: {db_place.name}\nАдрес: {db_place.address}\nОписание: {db_place.desc}\nВы пока не оценили это место"
         )
     else:
         return answer + (
-            f"{db_place.name}\n{db_place.address}\n{db_place.desc}\nВаша оценка месту: {score}"
+            f"Название: {db_place.name}\nАдрес: {db_place.address}\nОписание: {db_place.desc}\nВаша оценка месту: {score}"
         )
 
 
@@ -129,8 +127,10 @@ async def find_place_handler(
         )
     except NoResultFound:
         await callback.message.answer(
-            "Этого места еще нет в базе, но вы можете его добавить с помощью команды /add_place"
+            "Этого места еще нет в базе, но вы можете его добавить с помощью команды /add_place",
+            reply_markup=(await get_user_keyboard(session, callback.from_user.id)),
         )
+        await state.set_state(UserFSM.start_state)
 
 
 @router.callback_query(F.data == GET_COMMENTS_TAG, GetPlaceStates.choose_place)
@@ -259,7 +259,11 @@ async def enter_comment(message: Message, state: FSMContext, session: AsyncSessi
             raise NoPlaceException
         try:
             await db.add_user_place(
-                session, message.from_user.id, address=place.get_info(), score=score, comment=comment
+                session,
+                message.from_user.id,
+                address=place.get_info(),
+                score=score,
+                comment=comment,
             )  # adding user place by default so comment will save
         except UniqueConstraintError as e:
             print(e)

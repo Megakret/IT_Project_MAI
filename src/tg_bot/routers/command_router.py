@@ -30,7 +30,7 @@ async def perform_action(message: Message, state: FSMContext, session: AsyncSess
             await show_user_place_list(message, state, session)
         case "/get_place":
             await message.answer(f"Выполняется команда: {command}")
-            await get_place_handler(message, state)
+            await get_place_handler(message, state, session)
         case "/place_by_tag":
             await message.answer(f"Выполняется команда: {command}")
             await show_tag_menu_handler(message, state, session)

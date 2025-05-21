@@ -8,6 +8,7 @@ from tg_bot.keyboards import insert_place_tags_kb, INSERT_PLACE_TAGS_TAG, back_k
 from tg_bot.ui_components.GeosuggestSelector import (
     GeosuggestSelector,
     KEYBOARD_PREFIX,
+    PLACE_KEY,
 )
 from tg_bot.ui_components.TagSelector import (
     TagSelector,
@@ -33,9 +34,14 @@ async def show_suggestions(
 # manager variation
 # @router.callback_query(F.data.contains(KEYBOARD_PREFIX), NewPlaceFSM.choose_place)
 async def choose_suggested_place(
-    callback: CallbackQuery, state: FSMContext, geosuggest_selector: GeosuggestSelector
+    callback: CallbackQuery, state: FSMContext, geosuggest_selector: GeosuggestSelector, session: AsyncSession
 ):
     await geosuggest_selector.selected_place(callback, state)
+    data = await state.get_data()
+    place = data[PLACE_KEY]
+    does_place_exists = await db.is_existing_place(session, place.get_info())
+    if does_place_exists:
+        raise ValueError("Место уже существует")
     await callback.message.answer("Введите описание места")
 
 
@@ -72,7 +78,7 @@ async def answer_form_result(
 ):
     data = await state.get_data()
     place: Place = data["place"]
-    tags: list[str] = data.get(TAG_DATA_KEY, None)
+    tags: set[str] = data.get(TAG_DATA_KEY, None)
     address: str = place.get_info()
     try:
         does_place_exist: bool = await db.is_existing_place(session, address)
