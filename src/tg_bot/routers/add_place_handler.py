@@ -151,8 +151,9 @@ async def add_request_to_manager(
             place.get_name(),
             place.get_info(),
             data["description"],
+            tags,
         )
-        await db.add_place_tags(session, place.get_info(), tags)
+        # await db.add_place_tags(session, place.get_info(), tags)
         await callback.answer("Запрос успешно создан")
         # await callback.message.answer(
         #     "Хотите добавить отзыв на место?", reply_markup=yes_no_inline
@@ -167,6 +168,11 @@ async def add_request_to_manager(
         await callback.answer(
             "Извините, похоже, пока вы добавляли место, кто-то другой добавил его быстрее вас."
         )
+    await state.set_state(UserFSM.start_state)
+    await callback.message.answer(
+        "Вовзвращение в главное меню",
+        reply_markup=await get_user_keyboard(session, callback.from_user.id),
+    )
 
 
 @router.callback_query(NewPlaceFSM.want_to_add_review, F.data == "yes")

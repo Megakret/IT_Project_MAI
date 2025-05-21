@@ -61,3 +61,4 @@ class AdminPlaceRequestsFSM(AdminFSM):
     edit_start = State()
     waiting_for_edited_description = State()
     confirmation_of_description = State()
+    edit_tags_input = State()

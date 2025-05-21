@@ -68,7 +68,12 @@ async def handle_yes_of_confirmation_of_acceptance(
     callback: CallbackQuery, state: FSMContext, session: AsyncSession
 ):
     await funcs.handle_accept_confirmation_yes(
-        callback, state, session, ManagerPlaceRequestsFSM.looking_at_request
+        callback,
+        state,
+        session,
+        ManagerPlaceRequestsFSM.looking_at_request,
+        ManagerFSM.start_state,
+        manager_kb,
     )
 
 
@@ -105,7 +110,9 @@ async def handle_no_of_confirmation_of_dissmiss(
     )
 
 
-@router.callback_query(F.data == "edit", ManagerPlaceRequestsFSM.looking_at_request)
+@router.callback_query(
+    F.data == "edit_desc", ManagerPlaceRequestsFSM.looking_at_request
+)
 async def hande_edit(callback: CallbackQuery, state: FSMContext, session: AsyncSession):
     await funcs.handle_edit(
         callback, state, session, ManagerPlaceRequestsFSM.edit_start
@@ -146,7 +153,7 @@ async def handle_yes_desc(
     callback: CallbackQuery, state: FSMContext, session: AsyncSession
 ):
     await funcs.handle_confirm_new_description(
-        callback, state, session, ManagerPlaceRequestsFSM.looking_at_request
+        callback, state, session, ManagerPlaceRequestsFSM.start_state
     )
 
 

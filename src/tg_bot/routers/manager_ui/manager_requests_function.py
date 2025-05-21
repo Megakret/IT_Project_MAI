@@ -3,16 +3,17 @@ from aiogram.fsm.state import State
 from aiogram.fsm.context import FSMContext
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from tg_bot.keyboards import yes_no_inline, request_manager_kb
+from tg_bot.ui_components.TagSelector import TAG_DATA_KEY, TagSelector
+from tg_bot.keyboards import yes_no_inline, request_manager_kb, insert_place_tags_kb
 import database.db_functions as db
 
 
 def __form_message_for_manager(answer: db.AddPlaceRequest):
     return f"""
-Запрос от @{answer.parent_user}:
 Место: {answer.place_name}
 Адрес: {answer.address}
 Описание: {answer.description}
+Теги: {answer.tags_formatted}
 """
 
 
@@ -87,7 +88,12 @@ async def handle_dismiss(
 
 
 async def handle_accept_confirmation_yes(
-    callback: CallbackQuery, state: FSMContext, session: AsyncSession, next_state: State
+    callback: CallbackQuery,
+    state: FSMContext,
+    session: AsyncSession,
+    next_state: State,
+    fail_state: State,
+    fail_kb: ReplyKeyboardMarkup,
 ):
     place_requested: db.AddPlaceRequest = (await state.get_data())["request_data"]
     await db.add_place(
@@ -96,15 +102,18 @@ async def handle_accept_confirmation_yes(
         place_requested.address,
         place_requested.description,
     )
+    await db.add_place_tags(
+        session, place_requested.address, place_requested.tags_formatted.split(";")
+    )
     await db.delete_request(session, place_requested.id)
     await state.set_state(next_state)
-    await handle_yes_command(callback, state, session, next_state)
+    await handle_yes_command(callback, state, session, next_state, fail_state, fail_kb)
 
 
 async def handle_accept_confirmation_no(
     callback: CallbackQuery, state: FSMContext, session: AsyncSession, next_state: State
 ):
-    place_data = await state.get_data()
+    place_data = (await state.get_data())["request_data"]
     await callback.message.edit_text(
         __form_message_for_manager(place_data), reply_markup=request_manager_kb
     )
@@ -112,18 +121,28 @@ async def handle_accept_confirmation_no(
 
 
 async def handle_dismiss_confirmation_yes(
-    callback: CallbackQuery, state: FSMContext, session: AsyncSession, next_state: State
+    callback: CallbackQuery,
+    state: FSMContext,
+    session: AsyncSession,
+    next_state: State,
+    fail_state: State,
+    fail_kb: ReplyKeyboardMarkup,
 ):
     place_requested: db.AddPlaceRequest = (await state.get_data())["request_data"]
     await db.delete_request(session, place_requested.id)
     await state.set_state(next_state)
-    await handle_yes_command(callback, state, session, next_state)
+    await handle_yes_command(callback, state, session, next_state, fail_state, fail_kb)
 
 
 async def handle_dismiss_confirmation_no(
-    callback: CallbackQuery, state: FSMContext, session: AsyncSession, next_state: State
+    callback: CallbackQuery,
+    state: FSMContext,
+    session: AsyncSession,
+    next_state: State,
+    fail_state: State,
+    fail_kb: ReplyKeyboardMarkup,
 ):
-    place_data = await state.get_data()
+    place_data = (await state.get_data())["request_data"]
     await callback.message.edit_text(
         __form_message_for_manager(place_data), reply_markup=request_manager_kb
     )
@@ -134,7 +153,7 @@ async def handle_dismiss_confirmation_no(
 async def handle_edit(
     callback: CallbackQuery, state: FSMContext, session: AsyncSession, next_state: State
 ):
-    place_requested: db.AddPlaceRequest = await state.get_data()
+    place_requested: db.AddPlaceRequest = (await state.get_data())["request_data"]
     await callback.message.edit_text(
         f"""Вы хотите изменить описание места {place_requested.place_name}
 Описание:
@@ -149,7 +168,7 @@ async def handle_edit(
 async def handle_yes_edit(
     callback: CallbackQuery, state: FSMContext, session: AsyncSession, next_state: State
 ) -> None:
-    place: db.AddPlaceRequest = (await state.get_data())["request_place"]
+    place: db.AddPlaceRequest = (await state.get_data())["request_data"]
     await callback.message.edit_text(
         f"Старое описание:\n<code>{place.description}</code>\nВведите новое (нажмите на старое, чтобы скопировать)",
         parse_mode="HTML",
@@ -160,7 +179,7 @@ async def handle_yes_edit(
 async def handle_no_edit(
     callback: CallbackQuery, state: FSMContext, session: AsyncSession, next_state: State
 ) -> None:
-    place_data = await state.get_data()
+    place_data = (await state.get_data())["request_data"]
     await callback.message.edit_text(
         __form_message_for_manager(place_data), reply_markup=request_manager_kb
     )
@@ -172,16 +191,16 @@ async def handle_no_edit(
 async def handle_new_description(
     message: Message, state: FSMContext, session: AsyncSession, next_state: State
 ) -> None:
-    text = await message.text
+    text = message.text
     await message.delete()
     if not text:
         return
-    request_message: Message = (await state.get_state())["message_to_request"]
-    place_requested: db.AddPlaceRequest = (await state.get_state())["request_place"]
+    request_message: Message = (await state.get_data())["message_to_request"]
+    place_requested: db.AddPlaceRequest = (await state.get_data())["request_data"]
     await state.update_data(new_desc=text)
     await state.set_state(next_state)
     await request_message.edit_text(
-        f"Вы уверены, что хотите добавить место {place_requested.place_name} с новым описанием:\n<code>{text}</code>",
+        f"Вы уверены, что хотите изменить описание места {place_requested.place_name}\nНовое описание:\n<code>{text}</code>",
         parse_mode="HTML",
         reply_markup=yes_no_inline,
     )
@@ -193,18 +212,46 @@ async def handle_confirm_new_description(
     data = await state.get_data()
     place_requested: db.AddPlaceRequest = data["request_data"]
     new_desc = data["new_desc"]
-    await db.add_place(
-        session, place_requested.place_name, place_requested.address, new_desc
-    )
-    await db.delete_request(session, place_requested.id)
+    place_requested.description = new_desc
     await state.set_state(next_state)
-    await handle_yes_command(callback, state, session, next_state)
+    await callback.message.edit_text(
+        __form_message_for_manager(place_requested), reply_markup=request_manager_kb
+    )
 
 
 async def handle_dismiss_new_description(
     callback: CallbackQuery, state: FSMContext, session: AsyncSession, next_state: State
 ):
     await handle_edit(callback, state, session, next_state)
+
+
+async def handle_edit_tags_start(
+    callback: CallbackQuery,
+    state: FSMContext,
+    session: AsyncSession,
+    next_state: State,
+    tag_selector: TagSelector,
+):
+    await tag_selector.show_tag_menu_on_callback(
+        callback,
+        state,
+        keyboard=insert_place_tags_kb,
+        start_message="Нажмите на /<tag>, чтобы его добавить. Нажмите на кнопку, когда закончите добавлять теги\n",
+    )
+    await state.set_state(next_state)
+
+
+async def handle_tags_complete_button(
+    callback: CallbackQuery, state: FSMContext, session: AsyncSession, next_state: State
+):
+    data = await state.get_data()
+    tags = data[TAG_DATA_KEY]
+    place: db.AddPlaceRequest = data["request_data"]
+    place.tags_formatted = ";".join(tags)
+    await state.set_state(next_state)
+    await callback.message.edit_text(
+        __form_message_for_manager(place), reply_markup=request_manager_kb
+    )
 
 
 async def handle_exit(
@@ -214,7 +261,7 @@ async def handle_exit(
     next_state: State,
     keyboard: ReplyKeyboardMarkup,
 ):
-    place: db.AddPlaceRequest = (await state.get_data())["request_place"]
+    place: db.AddPlaceRequest = (await state.get_data())["request_data"]
     await db.delay_add_place_request(session, place.id)
     await callback.message.answer("Возвращение в меню...", keyboard=keyboard)
     await callback.message.delete()

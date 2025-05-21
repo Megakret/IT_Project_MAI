@@ -170,8 +170,9 @@ request_manager_kb = InlineKeyboardMarkup(
         ],
         [
             InlineKeyboardButton(
-                text="Редактировать описание и принять", callback_data="edit"
-            )
+                text="Редактировать описание", callback_data="edit_desc"
+            ),
+            InlineKeyboardButton(text="Редактировать теги", callback_data="edit_tags"),
         ],
         [InlineKeyboardButton(text="Назад", callback_data="exit")],
     ]

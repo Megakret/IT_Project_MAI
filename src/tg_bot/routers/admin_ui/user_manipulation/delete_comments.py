@@ -18,6 +18,7 @@ from tg_bot.routers.role_model_fsm.admin_fsm import AdminFSM, UserManipulationFS
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import NoResultFound
 
+from tg_bot.config import BOT_USERNAME
 from tg_bot.ui_components.Paginator import PaginatorService
 from tg_bot.ui_components.GeosuggestSelector import (
     GeosuggestSelector,
@@ -48,7 +49,7 @@ async def get_comments(
             await db.get_place_with_score(session, address)
         )[0].id
         return [
-            f'@{username}\n{comment}\nОцена:{score if score else "Без оценки"}\n<a href="https://t.me/BulkovBot?text=/delete+{id}+{username}">Удалить комментарий</a>'
+            f'@{username}\n{comment}\nОцена:{score if score else "Без оценки"}\n<a href="https://t.me/{BOT_USERNAME}?text=/delete+{id}+{username}">Удалить комментарий</a>'
             for username, comment, score in comments
         ]
     elif username:
@@ -56,7 +57,7 @@ async def get_comments(
             session, page, comments_per_page, username
         )
         return [
-            f'@{username}\n{place_data.name}\n{place_data.address}\n\n{comment}\nОцена: {score if score else "Без оценки"}\n<a href="https://t.me/BulkovBot?text=/delete+{id}+{username}">Удалить комментарий</a>'
+            f'@{username}\n{place_data.name}\n{place_data.address}\n\n{comment}\nОцена: {score if score else "Без оценки"}\n<a href="https://t.me/{BOT_USERNAME}?text=/delete+{place_data.id}+{username}">Удалить комментарий</a>'
             for place_data, comment, score in comments
         ]
     raise ValueError("Username and address are None at the same time.")
@@ -172,6 +173,7 @@ async def prev_comments_page(
 async def indicator_clicked_comments(
     callback: CallbackQuery, state: FSMContext, session: AsyncSession
 ):
+    print("indicator clicked")
     data = await state.get_data()
     await delete_comments_paginator_service.indicator_clicked(
         callback,
@@ -188,6 +190,7 @@ async def delete_comment(message: Message, state: FSMContext, session: AsyncSess
     id, username = message.text[len("/delete ") :].split()
     id = int(id)
     data = await state.get_data()
+    print(data["username"])
     await message.delete()
     try:
         await db.remove_review(session, username, id)
