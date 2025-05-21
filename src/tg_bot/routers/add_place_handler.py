@@ -96,7 +96,6 @@ async def check_place_existence_handler(
             reply_markup=yes_no_inline,
         )
         await state.set_state(NewPlaceFSM.want_to_add_to_database)
-        print("got here")
 
 
 @router.callback_query(F.data == "yes", NewPlaceFSM.want_to_add_to_database)
@@ -146,15 +145,19 @@ async def add_request_to_manager(
     try:
         place: Place = data["place"]
         tags: list[str] = data[TAG_DATA_KEY]
-        await db.add_place(
-            session, place.get_name(), place.get_info(), data["description"]
+        await db.add_place_request(
+            session,
+            callback.from_user.id,
+            place.get_name(),
+            place.get_info(),
+            data["description"],
         )
         await db.add_place_tags(session, place.get_info(), tags)
-        await callback.answer("Место успешно добавлено")
-        await callback.message.answer(
-            "Хотите добавить отзыв на место?", reply_markup=yes_no_inline
-        )
-        await state.set_state(NewPlaceFSM.want_to_add_review)
+        await callback.answer("Запрос успешно создан")
+        # await callback.message.answer(
+        #     "Хотите добавить отзыв на место?", reply_markup=yes_no_inline
+        # )
+        # await state.set_state(NewPlaceFSM.want_to_add_review)
     except KeyError:
         await state.clear()
         await callback.answer("Что-то пошло не так, попробуйте ввести команду снова")

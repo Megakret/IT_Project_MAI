@@ -73,11 +73,7 @@ show_comments_keyboard = InlineKeyboardMarkup(
                 text="Суммаризовать комментарии", callback_data=SUMMARIZE_COMMENTS_TAG
             )
         ],
-        [
-            InlineKeyboardButton(
-                text="Оставить отзыв", callback_data=LEAVE_COMMENT_TAG
-            )
-        ],
+        [InlineKeyboardButton(text="Оставить отзыв", callback_data=LEAVE_COMMENT_TAG)],
     ]
 )
 show_places_by_tag_kb = InlineKeyboardMarkup(
@@ -169,17 +165,15 @@ place_manager_kb = ReplyKeyboardMarkup(
 request_manager_kb = InlineKeyboardMarkup(
     inline_keyboard=[
         [
-            [
-                InlineKeyboardButton(text="Принять", callback_data="accept"),
-                InlineKeyboardButton(text="Отклонить", callback_data="dismiss"),
-            ],
-            [
-                InlineKeyboardButton(
-                    text="Редактировать описание и принять", callback_data="edit"
-                )
-            ],
-            [InlineKeyboardButton(text="Назад", callback_data="exit")],
-        ]
+            InlineKeyboardButton(text="Принять", callback_data="accept"),
+            InlineKeyboardButton(text="Отклонить", callback_data="dismiss"),
+        ],
+        [
+            InlineKeyboardButton(
+                text="Редактировать описание и принять", callback_data="edit"
+            )
+        ],
+        [InlineKeyboardButton(text="Назад", callback_data="exit")],
     ]
 )
 

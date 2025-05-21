@@ -28,3 +28,36 @@ class UserManipulationFSM(StatesGroup):
     select_place_for_comment_deletion = State()
     delete_comments_paginator_state = State()
     choose_mode_for_deletion = State()
+
+
+class AdminAddPlaceFSM(AdminFSM):
+    enter_place = State()
+    choose_place = State()
+    enter_description = State()
+    selecting_tags = State()
+
+
+class AdminGetPlaceFSM(AdminFSM):
+    enter_place = State()
+    choose_place = State()
+
+
+class AdminDeletePlaceFSM(AdminFSM):
+    enter_place_name = State()
+    select_place = State()
+
+
+class AdminUpdatePlaceFSM(AdminFSM):
+    enter_place_name = State()
+    select_place = State()
+    enter_new_description = State()
+
+
+class AdminPlaceRequestsFSM(AdminFSM):
+    confirmation = State()
+    looking_at_request = State()
+    confirmation_of_acception = State()
+    confirmation_of_dismiss = State()
+    edit_start = State()
+    waiting_for_edited_description = State()
+    confirmation_of_description = State()
