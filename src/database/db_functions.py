@@ -20,7 +20,7 @@ from sqlalchemy.ext.asyncio import (
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.exc import IntegrityError, NoResultFound
 
-from db_exceptions import UniqueConstraintError, ConstraintError
+from database.db_exceptions import UniqueConstraintError, ConstraintError
 
 engine: AsyncEngine
 async_session_maker: async_sessionmaker
@@ -136,6 +136,7 @@ class AddPlaceRequest(Base):
     place_name: Mapped[str]
     address: Mapped[str]
     description: Mapped[str]
+    tags_formatted: Mapped[str]
     is_operated: Mapped[bool]
 
     parent_user: Mapped["User"] = relationship(back_populates="user_add_place_requests")
@@ -820,7 +821,7 @@ async def does_channel_exist(session: AsyncSession, channel_username: str) -> bo
 
 
 async def add_place_request(
-    session: AsyncSession, user_id: int, place_name: str, address: str, description: str
+    session: AsyncSession, user_id: int, place_name: str, address: str, description: str, tags: list[str]
 ):
     session.add(
         AddPlaceRequest(
@@ -829,12 +830,14 @@ async def add_place_request(
             address=address,
             description=description,
             is_operated=False,
+            tags_formatted="; ".join(tags)
         )
     )
     await session.commit()
 
 
 # throws NoResultFound from sqlalchemy.exc if no requests
+#tags_formatted may be None
 async def get_first_request(session: AsyncSession) -> AddPlaceRequest:
     statement = (
         select(AddPlaceRequest).where(AddPlaceRequest.is_operated == False).limit(1)
