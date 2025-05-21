@@ -629,7 +629,7 @@ async def get_place_comments(
     result = await session.execute(statement)
     comments = result.all()
     return [
-        ("@" + username, comment, score)
+        (username, comment, score)
         for username, comment, score in comments
         if comment is not None
     ]

@@ -28,6 +28,7 @@ from tg_bot.keyboards import (
     SUMMARIZE_COMMENTS_TAG,
     LEAVE_COMMENT_TAG,
     SUMMARIZE_DESCRIPTION_TAG,
+    back_kb
 )
 from tg_bot.utils_and_validators import MessageIsTooLarge, validate_message_size
 from tg_bot.config import MAX_COMMENT_SIZE
@@ -76,15 +77,9 @@ paginator_service = PaginatorService(
 @router.message(Command("get_place"), UserFSM.start_state)
 async def get_place_handler(message: Message, state: FSMContext, session: AsyncSession):
     await message.answer(
-        "Чтобы выйти из команды, напишите /exit. Введите название места:"
+        "Чтобы выйти из команды, напишите /exit. Введите название места:", reply_markup=back_kb
     )
     await state.set_state(GetPlaceStates.enter_place)
-    try:
-        await paginator_service.update_paginator(
-            state, "Достопримечательность · Калининград, Ленинградский район", session
-        )
-    except:
-        pass
 
 
 @router.message(GetPlaceStates.enter_place, F.text)
