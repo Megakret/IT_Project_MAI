@@ -17,7 +17,7 @@ from tg_bot.keyboards import (
     show_places_by_tag_kb,
     back_kb,
 )
-from tg_bot.ui_components.TagSelector import TAG_DATA_KEY, TagSelector
+from tg_bot.ui_components.TagSelector import TAG_DATA_KEY, TagSelector, LAST_TAG_KEY
 from tg_bot.utils_and_validators import shorten_message
 from tg_bot.config import MAX_DESCRIPTION_VIEWSIZE
 
@@ -74,9 +74,7 @@ async def show_places(
 ):
     data = await state.get_data()
     try:
-        tag = data[TAG_DATA_KEY][-1]  # TODO: add fliter by multiple tags in db
-        if tag is None:
-            raise NoTagException
+        tag = data[LAST_TAG_KEY]  # TODO: add fliter by multiple tags in db
         await paginator_service.start_paginator(callback.message, state, session, tag)
         await callback.answer()
     except KeyError as e:
@@ -84,7 +82,7 @@ async def show_places(
             "Что-то пошло не так. Попробуйте заново войти в меню поиска по тегам."
         )
         await callback.answer()
-    except NoTagException:
+    except KeyError:
         await callback.answer("Вы не выбрали ни одного тега")
     await state.set_state(GetPlaceByTagFSM.watch_places)
 
@@ -101,35 +99,40 @@ async def show_places_invalid(callback: CallbackQuery, state: FSMContext):
 async def next_page(callback: CallbackQuery, state: FSMContext, session: AsyncSession):
     data = await state.get_data()
     try:
-        tag_list: list[str] = data[TAG_DATA_KEY]
-        tag: str = tag_list[-1]
+        tag: str = data[LAST_TAG_KEY]
         await paginator_service.show_next_page(callback, state, session, tag)
     except KeyError as e:
         print(e)
-        await callback.answer("Что-то пошло не так. Попробуйте заново войти в меню поиска по тегам.")
+        await callback.answer(
+            "Что-то пошло не так. Попробуйте заново войти в меню поиска по тегам."
+        )
 
 
 @router.callback_query(F.data == PREV_PAGE + POSTFIX, GetPlaceByTagFSM.watch_places)
 async def prev_page(callback: CallbackQuery, state: FSMContext, session: AsyncSession):
     data = await state.get_data()
     try:
-        tag_list: list[str] = data[TAG_DATA_KEY]
-        tag: str = tag_list[-1]
+        tag: str = data[LAST_TAG_KEY]
         await paginator_service.show_prev_page(callback, state, session, tag)
     except KeyError as e:
         print(e)
-        await callback.answer("Что-то пошло не так. Попробуйте заново войти в меню поиска по тегам.")
+        await callback.answer(
+            "Что-то пошло не так. Попробуйте заново войти в меню поиска по тегам."
+        )
 
 
 @router.callback_query(
     F.data == INDICATOR_CLICKED + POSTFIX, GetPlaceByTagFSM.watch_places
 )
-async def prev_page(callback: CallbackQuery, state: FSMContext, session: AsyncSession):
+async def indicator_clicked(
+    callback: CallbackQuery, state: FSMContext, session: AsyncSession
+):
     data = await state.get_data()
     try:
-        tag_list: list[str] = data[TAG_DATA_KEY]
-        tag: str = tag_list[-1]
+        tag: str = data[LAST_TAG_KEY]
         await paginator_service.indicator_clicked(callback, state, session, tag)
     except KeyError as e:
         print(e)
-        await callback.answer("Что-то пошло не так. Попробуйте заново войти в меню поиска по тегам.")
+        await callback.answer(
+            "Что-то пошло не так. Попробуйте заново войти в меню поиска по тегам."
+        )

@@ -140,7 +140,7 @@ async def add_request_to_manager(
     data = await state.get_data()
     try:
         place: Place = data["place"]
-        tags: list[str] = data[TAG_DATA_KEY]
+        tags: list[str] = list(data[TAG_DATA_KEY])
         await db.add_place_request(
             session,
             callback.from_user.id,

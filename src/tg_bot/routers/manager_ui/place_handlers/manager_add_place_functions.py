@@ -72,7 +72,7 @@ async def answer_form_result(
 ):
     data = await state.get_data()
     place: Place = data["place"]
-    tags: list[str] = data.get(TAG_DATA_KEY, None)
+    tags: set[str] = data.get(TAG_DATA_KEY, None)
     address: str = place.get_info()
     try:
         does_place_exist: bool = await db.is_existing_place(session, address)
