@@ -7,7 +7,7 @@ class ManagerFSM(StatesGroup):
     place_state = State()
 
 
-class ChannelFSM(StatesGroup):
+class ManagerChannelFSM(StatesGroup):
     add_channel_state = State()
     remove_channel_state = State()
 

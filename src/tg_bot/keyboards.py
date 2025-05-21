@@ -93,7 +93,7 @@ insert_place_tags_kb = InlineKeyboardMarkup(
     inline_keyboard=[
         [
             InlineKeyboardButton(
-                text="Добавить теги к месту", callback_data=INSERT_PLACE_TAGS_TAG
+                text="Завершить добавление тегов", callback_data=INSERT_PLACE_TAGS_TAG
             )
         ]
     ]
@@ -102,7 +102,7 @@ update_place_tags_kb = InlineKeyboardMarkup(
     inline_keyboard=[
         [
             InlineKeyboardButton(
-                text="Обновить теги к месту", callback_data=UPDATE_TAGS_TAG
+                text="Завершить обновление тегов", callback_data=UPDATE_TAGS_TAG
             )
         ]
     ]
