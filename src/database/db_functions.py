@@ -480,6 +480,10 @@ async def add_place_tags(
     session: AsyncSession, address: str, place_tags: tuple[str]
 ) -> None:
     try:
+        await session.execute(
+            delete(Tag).where(Tag.fk_place_address == address)
+        )  # deleting old tags
+        await session.flush()
         instances_to_add = [
             Tag(fk_place_address=address, place_tag=tag) for tag in place_tags
         ]
@@ -506,8 +510,8 @@ async def add_place_tags(
 async def get_place_tags(session: AsyncSession, address: str) -> tuple[str]:
     statement = select(Tag.place_tag).where(Tag.fk_place_address == address)
     result = await session.execute(statement)
-    tags_list = result.one().tuple()
-    return tags_list
+    tag_list = result.scalars().all()
+    return tuple(tag_list)
 
 
 async def get_places_with_tag(
@@ -869,6 +873,15 @@ async def delay_add_place_request(session: AsyncSession, request_id: int):
     if request is None:
         raise NoResultFound
     request.is_operated = False
+    await session.commit()
+
+
+async def update_place_description(
+    session: AsyncSession, address: str, description: str
+):
+    result = await session.execute(statement=select(Place).where(Place.address == address))
+    place = result.scalar_one()
+    place.desc = description
     await session.commit()
 
 

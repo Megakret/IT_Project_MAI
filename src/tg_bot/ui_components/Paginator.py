@@ -5,6 +5,7 @@ from typing import Callable, Awaitable
 from aiogram.fsm.context import FSMContext
 from aiogram.filters import Command
 from aiogram.types import InlineKeyboardMarkup
+from aiogram.exceptions import TelegramBadRequest
 
 
 class NoMorePages(Exception):
@@ -48,12 +49,20 @@ class Paginator:
         text: str = "\n-----------\n".join(items)
         if text == "":
             raise NoMorePages(page)
-        await self._message.edit_text(
-            text, reply_markup=self._paginator_service.update_kb(page), **kwargs
-        )
+        if text == self.message.text:
+            return
+        try:
+            await self._message.edit_text(
+                text, reply_markup=self._paginator_service.update_kb(page), **kwargs
+            )
+        except TelegramBadRequest as e:
+            print(f"Paginator received same message")
 
     async def update(self, *args, **kwargs):
-        await self._update(self._current_page, *args, **kwargs)
+        try:
+            await self._update(self._current_page, *args, **kwargs)
+        except NoMorePages:
+            await self._message.edit_text(self._paginator_service.no_pages_message)
 
     async def setup(self, message: Message, *args, **kwargs):
         self._current_page = 1
