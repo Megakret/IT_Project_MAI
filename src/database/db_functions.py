@@ -480,6 +480,10 @@ async def add_place_tags(
     session: AsyncSession, address: str, place_tags: tuple[str]
 ) -> None:
     try:
+        await session.execute(
+            delete(Tag).where(Tag.fk_place_address == address)
+        )  # deleting old tags
+        await session.flush()
         instances_to_add = [
             Tag(fk_place_address=address, place_tag=tag) for tag in place_tags
         ]
@@ -506,8 +510,8 @@ async def add_place_tags(
 async def get_place_tags(session: AsyncSession, address: str) -> tuple[str]:
     statement = select(Tag.place_tag).where(Tag.fk_place_address == address)
     result = await session.execute(statement)
-    tags_list = result.one().tuple()
-    return tags_list
+    tag_list = result.scalars().all()
+    return tuple(tag_list)
 
 
 async def get_places_with_tag(
@@ -821,7 +825,12 @@ async def does_channel_exist(session: AsyncSession, channel_username: str) -> bo
 
 
 async def add_place_request(
-    session: AsyncSession, user_id: int, place_name: str, address: str, description: str, tags: list[str]
+    session: AsyncSession,
+    user_id: int,
+    place_name: str,
+    address: str,
+    description: str,
+    tags: list[str],
 ):
     session.add(
         AddPlaceRequest(
@@ -830,14 +839,14 @@ async def add_place_request(
             address=address,
             description=description,
             is_operated=False,
-            tags_formatted="; ".join(tags)
+            tags_formatted="; ".join(tags),
         )
     )
     await session.commit()
 
 
 # throws NoResultFound from sqlalchemy.exc if no requests
-#tags_formatted may be None
+# tags_formatted may be None
 async def get_first_request(session: AsyncSession) -> AddPlaceRequest:
     statement = (
         select(AddPlaceRequest).where(AddPlaceRequest.is_operated == False).limit(1)
@@ -864,6 +873,15 @@ async def delay_add_place_request(session: AsyncSession, request_id: int):
     if request is None:
         raise NoResultFound
     request.is_operated = False
+    await session.commit()
+
+
+async def update_place_description(
+    session: AsyncSession, address: str, description: str
+):
+    result = await session.execute(statement=select(Place).where(Place.address == address))
+    place = result.scalar_one()
+    place.desc = description
     await session.commit()
 
 

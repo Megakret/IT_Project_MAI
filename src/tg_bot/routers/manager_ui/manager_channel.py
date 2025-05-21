@@ -25,18 +25,18 @@ async def display_help_manager(message: Message):
     await display_help(message)
 
 
-@router.message(Command("exit"), ChannelFSM.add_channel_state)
-@router.message(Command("exit"), ChannelFSM.remove_channel_state)
+@router.message(Command("exit"), ManagerChannelFSM.add_channel_state)
+@router.message(Command("exit"), ManagerChannelFSM.remove_channel_state)
 async def exit_channel_action_manager(message: Message, state: FSMContext):
     await exit_channel_action(message, state)
 
 
 @router.message(F.text == "Добавить ТГ канал", ManagerFSM.channel_state)
 async def add_channel_button_manager(message: Message, state: FSMContext):
-    await add_channel_button(message, state, ChannelFSM.add_channel_state)
+    await add_channel_button(message, state, ManagerChannelFSM.add_channel_state)
 
 
-@router.message(ChannelFSM.add_channel_state)
+@router.message(ManagerChannelFSM.add_channel_state)
 async def add_channel_action_manager(
     message: Message, state: FSMContext, session: AsyncSession
 ):
@@ -52,10 +52,10 @@ async def display_connected_channels_manager(
 
 @router.message(F.text == "Удалить канал", ManagerFSM.channel_state)
 async def remove_action_button_manager(message: Message, state: FSMContext):
-    await remove_action_button(message, state, ChannelFSM.remove_channel_state)
+    await remove_action_button(message, state, ManagerChannelFSM.remove_channel_state)
 
 
-@router.message(ChannelFSM.remove_channel_state)
+@router.message(ManagerChannelFSM.remove_channel_state)
 async def remove_channel_action_manager(
     message: Message, state: FSMContext, session: AsyncSession
 ):
