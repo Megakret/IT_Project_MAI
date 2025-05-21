@@ -113,7 +113,7 @@ manager_kb = ReplyKeyboardMarkup(
         [
             KeyboardButton(text="Управление ТГ каналами"),
             KeyboardButton(text="Управление местами"),
-            KeyboardButton(text="Запросы на добавления"),
+            KeyboardButton(text="Запросы на добавление мест"),
         ],
         [KeyboardButton(text="Назад")],
     ],
@@ -127,7 +127,7 @@ admin_kb = ReplyKeyboardMarkup(
             KeyboardButton(text="Управление местами"),
         ],
         [
-            KeyboardButton(text="Запросы на добавления"),
+            KeyboardButton(text="Запросы на добавление мест"),
             KeyboardButton(text="Управление пользователями"),
         ],
         [KeyboardButton(text="Назад")],
@@ -173,6 +173,22 @@ place_manager_kb = ReplyKeyboardMarkup(
         ],
         [KeyboardButton(text="Найти место"), KeyboardButton(text="Назад")],
     ],
+)
+
+request_manager_kb = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [
+            InlineKeyboardButton(text="Принять", callback_data="accept"),
+            InlineKeyboardButton(text="Отклонить", callback_data="dismiss"),
+        ],
+        [
+            InlineKeyboardButton(
+                text="Редактировать описание", callback_data="edit_desc"
+            ),
+            InlineKeyboardButton(text="Редактировать теги", callback_data="edit_tags"),
+        ],
+        [InlineKeyboardButton(text="Назад", callback_data="exit")],
+    ]
 )
 
 select_comment_deletion_mode_kb = ReplyKeyboardMarkup(

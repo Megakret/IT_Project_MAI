@@ -1,4 +1,4 @@
-from aiogram.types import Message
+from aiogram.types import Message, CallbackQuery
 from aiogram import Router
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
@@ -23,27 +23,35 @@ TAG_DATA_KEY = "tag_list"
 #     tag_select_finished = State()
 
 
-def tag_handler_wrapper(tag: str) -> Coroutine:
+def tag_handler_wrapper(tag: str, message_writing: bool = True) -> Coroutine:
     async def routine(message: Message, state: FSMContext):
         nonlocal tag
         data: dict[str, any] = await state.get_data()
         tag_list: list[str] = data.get("tag_list", [])
         tag_list.append(tag)
         await state.update_data(tag_list=tag_list)
-        await message.answer(f"Вы выбрали тэг: {TAGS[tag]}")
+        if message_writing:
+            await message.answer(f"Вы выбрали тэг: {TAGS[tag]}")
+        else:
+            await message.delete()
 
     return routine
 
 
 class TagSelector:
-    def __init__(self, selecting_state: State, router: Router):
+    def __init__(
+        self, selecting_state: State, router: Router, write_messages: bool = True
+    ):
+        self.write_messages = write_messages
         self._selecting_state = selecting_state
         self._generate_tag_handlers(router)
 
     def _generate_tag_handlers(self, router: Router) -> None:
         for key in TAGS:
             router.message.register(
-                tag_handler_wrapper(key), Command(key), self._selecting_state
+                tag_handler_wrapper(key, self.write_messages),
+                Command(key),
+                self._selecting_state,
             )
 
     async def show_tag_menu(
@@ -58,3 +66,16 @@ class TagSelector:
         await state_machine.set_state(self._selecting_state)
         await state_machine.update_data(**{TAG_DATA_KEY: []})
         await message.answer(formed_message, reply_markup=keyboard)
+
+    async def show_tag_menu_on_callback(
+        self,
+        callback: CallbackQuery,
+        state_machine: FSMContext,
+        keyboard: InlineKeyboardMarkup | None = None,
+        start_message: str = "Нажмите на тег </tag>, чтобы найти по нему места: \n",
+    ):
+        formed_message: str = start_message
+        formed_message += "\n".join(map(lambda x: f"/{x} - {TAGS[x]}", TAGS))
+        await state_machine.set_state(self._selecting_state)
+        await state_machine.update_data(**{TAG_DATA_KEY: []})
+        await callback.message.edit_text(formed_message, reply_markup=keyboard)

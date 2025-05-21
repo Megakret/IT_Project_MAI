@@ -35,3 +35,14 @@ class ManagerUpdatePlaceFSM(ManagerFSM):
     press_update_buttons = State()
     enter_new_description = State()
     enter_new_tags = State()
+    
+    
+class ManagerPlaceRequestsFSM(ManagerFSM):
+    confirmation = State()
+    looking_at_request = State()
+    confirmation_of_acception = State()
+    confirmation_of_dismiss = State()
+    edit_start = State()
+    waiting_for_edited_description = State()
+    confirmation_of_description = State()
+    edit_tags_input = State()
