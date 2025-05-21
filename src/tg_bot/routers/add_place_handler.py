@@ -7,13 +7,15 @@ from aiogram.types import ReplyKeyboardRemove
 from aiogram import F
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from tg_bot.routers.user_fsm import UserFSM
 from api.geosuggest.place import Place
+
+from tg_bot.routers.user_fsm import UserFSM
 from tg_bot.keyboards import (
     get_user_keyboard,
     insert_place_tags_kb,
     yes_no_inline,
     INSERT_PLACE_TAGS_TAG,
+    back_kb
 )
 from tg_bot.ui_components.GeosuggestSelector import (
     GeosuggestSelector,
@@ -23,13 +25,7 @@ from tg_bot.ui_components.TagSelector import (
     TagSelector,
     TAG_DATA_KEY,
 )
-from tg_bot.tg_exceptions import NoTextMessageException, ScoreOutOfRange
-from tg_bot.filters.role_model_filters import IsAdmin, IsManager
-from tg_bot.tg_exceptions import (
-    NoTextMessageException,
-    ScoreOutOfRange,
-)
-from tg_bot.filters.role_model_filters import IsAdmin, IsManager
+from tg_bot.tg_exceptions import ScoreOutOfRange
 from tg_bot.utils_and_validators import validate_message_size, MessageIsTooLarge
 from tg_bot.config import MAX_COMMENT_SIZE
 import database.db_functions as db
@@ -58,7 +54,7 @@ tag_selector = TagSelector(selecting_state=NewPlaceFSM.select_tags, router=route
 async def geosuggest_test(message: Message, state: FSMContext) -> None:
     await message.answer(
         "Чтобы выйти из команды, напишите /exit. Введите место для досуга: ",
-        reply_markup=ReplyKeyboardRemove(),
+        reply_markup=back_kb,
     )
     await state.set_state(NewPlaceFSM.enter_place)
 
@@ -101,7 +97,7 @@ async def check_place_existence_handler(
 @router.callback_query(F.data == "yes", NewPlaceFSM.want_to_add_to_database)
 async def user_wants_to_add_desc_handler(callback: CallbackQuery, state: FSMContext):
     await callback.message.answer(
-        "Отлично. Введите описание места.", reply_markup=ReplyKeyboardRemove()
+        "Отлично. Введите описание места."
     )
     await state.set_state(NewPlaceFSM.enter_description)
     await callback.answer()
@@ -178,7 +174,7 @@ async def add_request_to_manager(
 @router.callback_query(NewPlaceFSM.want_to_add_review, F.data == "yes")
 async def want_to_add_review_handler(callback: CallbackQuery, state: FSMContext):
     await callback.message.answer(
-        "Введите свою оценку месту от 1 до 10.", reply_markup=ReplyKeyboardRemove()
+        "Введите свою оценку месту от 1 до 10.", reply_markup=back_kb
     )
     await state.set_state(NewPlaceFSM.enter_score)
     await callback.answer()

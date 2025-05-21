@@ -1,4 +1,4 @@
-from aiogram import Router
+from aiogram import Router, F
 from aiogram.types import Message
 from aiogram.fsm.state import State
 from aiogram.fsm.context import FSMContext
@@ -30,6 +30,7 @@ def initialize_user_routers(session_maker: async_sessionmaker):
 
 
 @router.message(Command("exit"))
+@router.message(F.text == "Назад")
 async def exit_command(message: Message, state: FSMContext, session: AsyncSession):
     current_state: State = await state.get_state()
     if current_state is UserFSM.start_state:
