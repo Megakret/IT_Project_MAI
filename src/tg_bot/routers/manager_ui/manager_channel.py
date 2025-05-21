@@ -3,7 +3,7 @@ from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, ReplyKeyboardRemove
 from tg_bot.keyboards import channel_kb, NEXT_PAGE, PREV_PAGE, INDICATOR_CLICKED
-from tg_bot.routers.channel_fetch_router import (
+from tg_bot.routers.channel_fetch_functions import (
     add_channel,
     get_channels,
     remove_channel,

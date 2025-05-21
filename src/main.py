@@ -14,7 +14,7 @@ from tg_bot.routers.admin_ui.admin_user_control import (
     router as admin_user_control_router,
 )
 from tg_bot.routers.admin_ui.admin_place import router as admin_place_router
-from tg_bot.routers.channel_fetch_router import router as manager_channel_router
+from tg_bot.routers.channel_fetch_functions import router as manager_channel_router
 from tg_bot.routers.manager_ui.manager import router as manager_router
 from tg_bot.routers.manager_ui.manager_channel import router as manager_router_channel
 from tg_bot.routers.manager_ui.manager_place import router as manager_router_place
