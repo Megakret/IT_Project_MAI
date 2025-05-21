@@ -3,8 +3,8 @@ from sqlalchemy import delete, exists, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
 
-from .db_tables import User, Place, UserPlace
-from .db_exceptions import UniqueConstraintError, ConstraintError
+from database.db_tables import User, Place, UserPlace
+from database.db_exceptions import UniqueConstraintError, ConstraintError
 
 
 async def add_user_place(

@@ -3,13 +3,13 @@ from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, create_async
 engine: AsyncEngine
 async_session_maker: async_sessionmaker
 
-from .db_tables import *
-from .db_user_functions import *
-from .db_place_functions import *
-from .db_user_place_functions import *
-from .db_place_tags_functions import *
-from .db_requests_functions import *
-from .db_channels_functions import *
+from database.db_tables import *
+from database.db_user_functions import *
+from database.db_place_functions import *
+from database.db_user_place_functions import *
+from database.db_place_tags_functions import *
+from database.db_requests_functions import *
+from database.db_channels_functions import *
 
 
 def init_database() -> async_sessionmaker:

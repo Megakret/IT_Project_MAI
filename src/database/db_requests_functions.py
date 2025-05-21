@@ -2,7 +2,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import NoResultFound
 
-from .db_tables import AddPlaceRequest
+from database.db_tables import AddPlaceRequest
 
 
 async def add_place_request(

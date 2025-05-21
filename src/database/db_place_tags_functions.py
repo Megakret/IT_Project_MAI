@@ -2,8 +2,8 @@ import sqlite3
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
-from .db_tables import Place, Tag
-from .db_exceptions import UniqueConstraintError, ConstraintError
+from database.db_tables import Tag
+from database.db_exceptions import UniqueConstraintError, ConstraintError
 
 
 async def add_place_tag(session: AsyncSession, address: str, place_tag: str) -> None:

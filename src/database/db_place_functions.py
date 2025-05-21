@@ -1,11 +1,10 @@
-from .db_tables import Place, Tag
-
 import sqlite3
 from sqlalchemy import exists, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError, NoResultFound
 
 from database.db_exceptions import UniqueConstraintError, ConstraintError
+from database.db_tables import Place, Tag
 
 
 async def add_place(

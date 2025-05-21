@@ -3,8 +3,8 @@ from sqlalchemy import delete, exists, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
 
-from .db_tables import User, TelegramChannel
-from .db_exceptions import UniqueConstraintError, ConstraintError
+from database.db_tables import User, TelegramChannel
+from database.db_exceptions import UniqueConstraintError, ConstraintError
 
 
 async def add_channel(session: AsyncSession, channel_username: str, user_id: int):

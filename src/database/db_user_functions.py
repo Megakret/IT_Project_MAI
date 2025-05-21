@@ -1,11 +1,10 @@
-from .db_tables import User
-
 import sqlite3
 from sqlalchemy import exists, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
 
 from database.db_exceptions import UniqueConstraintError, ConstraintError
+from database.db_tables import User
 
 
 async def get_id_by_username(session: AsyncSession, username: str) -> int:
