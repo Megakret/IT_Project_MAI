@@ -47,7 +47,11 @@ starter_buttons = [
         KeyboardButton(text="Список мест"),
         KeyboardButton(text="Список посещённых мест"),
     ],
-    [KeyboardButton(text="Найти место по тегу"), KeyboardButton(text="Найти место")],
+    [
+        KeyboardButton(text="Найти место по тегу"),
+        KeyboardButton(text="Найти место"),
+        KeyboardButton(text="Список ваших отзывов"),
+    ],
 ]
 
 starter_kb = ReplyKeyboardMarkup(keyboard=starter_buttons)
@@ -259,7 +263,11 @@ update_place_kb = InlineKeyboardMarkup(
                 text="Изменить описание", callback_data=UPDATE_DESCRIPTION_TAG
             )
         ],
-        [InlineKeyboardButton(text="Изменить теги", callback_data=SHOW_UPDATE_TAGS_TAG)],
+        [
+            InlineKeyboardButton(
+                text="Изменить теги", callback_data=SHOW_UPDATE_TAGS_TAG
+            )
+        ],
     ]
 )
 

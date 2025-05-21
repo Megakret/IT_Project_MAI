@@ -45,7 +45,7 @@ async def get_places_by_tag(
 ) -> list[str]:
     places: list[Place] = await get_places_with_tag(session, tag, page, places_per_page)
     place_formatted_list: map[str] = map(
-        lambda x: f"{x.name}\n{x.address}\n{shorten_message(x.desc, MAX_DESCRIPTION_VIEWSIZE)}",
+        lambda x: f"Название: {x.name}\nАдрес: {x.address}\nОписание: {shorten_message(x.desc, MAX_DESCRIPTION_VIEWSIZE)}",
         places,
     )
     return list(place_formatted_list)

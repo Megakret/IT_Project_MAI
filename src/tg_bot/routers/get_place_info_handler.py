@@ -99,11 +99,11 @@ async def generate_place_answer(
         answer += f"Айди места: {db_place.id}\n"
     if score is None:
         return answer + (
-            f"{db_place.name}\n{db_place.address}\n{db_place.desc}\nВы пока не оценили это место"
+            f"Название: {db_place.name}\nАдрес: {db_place.address}\nОписание: {db_place.desc}\nВы пока не оценили это место"
         )
     else:
         return answer + (
-            f"{db_place.name}\n{db_place.address}\n{db_place.desc}\nВаша оценка месту: {score}"
+            f"Название: {db_place.name}\nАдрес: {db_place.address}\nОписание: {db_place.desc}\nВаша оценка месту: {score}"
         )
 
 
