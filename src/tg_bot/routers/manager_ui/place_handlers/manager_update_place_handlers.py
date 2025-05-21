@@ -9,11 +9,19 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import tg_bot.routers.manager_ui.place_handlers.update_place_functions as update_place_funcs
 from tg_bot.routers.role_model_fsm.manager_fsm import ManagerUpdatePlaceFSM
 from tg_bot.tg_exceptions import PlaceNotFound
-from tg_bot.keyboards import back_kb, place_manager_kb
+from tg_bot.keyboards import (
+    back_kb,
+    place_manager_kb,
+    UPDATE_DESCRIPTION_TAG,
+    UPDATE_TAGS_TAG,
+    SHOW_UPDATE_TAGS_TAG,
+)
 from tg_bot.ui_components.GeosuggestSelector import GeosuggestSelector, KEYBOARD_PREFIX
+from tg_bot.ui_components.TagSelector import TagSelector
 
 router = Router()
 geosuggest_selector = GeosuggestSelector(ManagerUpdatePlaceFSM.select_place)
+tag_selector = TagSelector(ManagerUpdatePlaceFSM.enter_new_tags, router)
 
 
 @router.message(
@@ -22,6 +30,8 @@ geosuggest_selector = GeosuggestSelector(ManagerUpdatePlaceFSM.select_place)
         ManagerUpdatePlaceFSM.enter_place_name,
         ManagerUpdatePlaceFSM.select_place,
         ManagerUpdatePlaceFSM.enter_new_description,
+        ManagerUpdatePlaceFSM.press_update_buttons,
+        ManagerUpdatePlaceFSM.enter_new_tags,
     ),
 )
 async def exit_handler(message: Message, state: FSMContext):
@@ -55,9 +65,17 @@ async def selected_place_handler(
         await update_place_funcs.selected_place(
             callback, state, session, geosuggest_selector, failure_kb=place_manager_kb
         )
-        await state.set_state(ManagerUpdatePlaceFSM.enter_new_description)
+        await state.set_state(ManagerUpdatePlaceFSM.press_update_buttons)
     except PlaceNotFound:
         await state.set_state(ManagerUpdatePlaceFSM.place_state)
+
+
+@router.callback_query(
+    ManagerUpdatePlaceFSM.press_update_buttons, F.data == UPDATE_DESCRIPTION_TAG
+)
+async def start_description_enter_handler(callback: CallbackQuery, state: FSMContext):
+    await update_place_funcs.start_description_enter_function(callback, state)
+    await state.set_state(ManagerUpdatePlaceFSM.enter_new_description)
 
 
 @router.message(ManagerUpdatePlaceFSM.enter_new_description, F.text)
@@ -65,6 +83,21 @@ async def enter_description_handler(
     message: Message, state: FSMContext, session: AsyncSession
 ):
     await update_place_funcs.enter_description_function(
-        message, state, session, place_manager_kb
+        message, state, session
     )
-    await state.set_state(ManagerUpdatePlaceFSM.place_state)
+    await state.set_state(ManagerUpdatePlaceFSM.press_update_buttons)
+
+
+@router.callback_query(
+    ManagerUpdatePlaceFSM.press_update_buttons, F.data == SHOW_UPDATE_TAGS_TAG
+)
+async def start_tag_selector_handler(callback: CallbackQuery, state: FSMContext):
+    await update_place_funcs.start_tag_selector(callback, state, tag_selector)
+
+
+@router.callback_query(ManagerUpdatePlaceFSM.enter_new_tags, F.data == UPDATE_TAGS_TAG)
+async def enter_new_tags_handler(
+    callback: CallbackQuery, state: FSMContext, session: AsyncSession
+):
+    await update_place_funcs.update_tags(callback, state, session)
+    await state.set_state(ManagerUpdatePlaceFSM.press_update_buttons)

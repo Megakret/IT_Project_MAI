@@ -24,6 +24,10 @@ LEAVE_COMMENT_TAG = "leave_comment"
 SHOW_PLACES_BY_TAG = "search_places_by_tag"
 INSERT_PLACE_TAGS_TAG = "insert_place_tag"
 SUMMARIZE_DESCRIPTION_TAG = "summarize_description"
+UPDATE_DESCRIPTION_TAG = "update_description"
+SHOW_UPDATE_TAGS_TAG = "update_tags_start"
+UPDATE_TAGS_TAG = "update_tags"
+
 suggest_place_kbs: list[InlineKeyboardMarkup] = []
 for i in range(SUGGEST_AMOUNT):
     suggest_place_kbs.append(
@@ -73,11 +77,7 @@ show_comments_keyboard = InlineKeyboardMarkup(
                 text="Суммаризовать комментарии", callback_data=SUMMARIZE_COMMENTS_TAG
             )
         ],
-        [
-            InlineKeyboardButton(
-                text="Оставить отзыв", callback_data=LEAVE_COMMENT_TAG
-            )
-        ],
+        [InlineKeyboardButton(text="Оставить отзыв", callback_data=LEAVE_COMMENT_TAG)],
     ]
 )
 show_places_by_tag_kb = InlineKeyboardMarkup(
@@ -94,6 +94,15 @@ insert_place_tags_kb = InlineKeyboardMarkup(
         [
             InlineKeyboardButton(
                 text="Добавить теги к месту", callback_data=INSERT_PLACE_TAGS_TAG
+            )
+        ]
+    ]
+)
+update_place_tags_kb = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [
+            InlineKeyboardButton(
+                text="Обновить теги к месту", callback_data=UPDATE_TAGS_TAG
             )
         ]
     ]
@@ -225,6 +234,17 @@ chose_role_for_paginator_inline = InlineKeyboardMarkup(
 
 back_kb = ReplyKeyboardMarkup(
     keyboard=[[KeyboardButton(text="Назад")]], resize_keyboard=True
+)
+
+update_place_kb = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [
+            InlineKeyboardButton(
+                text="Изменить описание", callback_data=UPDATE_DESCRIPTION_TAG
+            )
+        ],
+        [InlineKeyboardButton(text="Изменить теги", callback_data=SHOW_UPDATE_TAGS_TAG)],
+    ]
 )
 
 
