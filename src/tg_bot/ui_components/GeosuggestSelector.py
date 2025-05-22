@@ -19,10 +19,23 @@ class NoPlacesFoundException(Exception):
 
 
 class GeosuggestSelector:
+    """Class for handling geosuggest menu.\n
+
+    Keyword arguments:\n
+    selector_state (State): State in which user selects place.\n
+    """
+
     def __init__(self, selector_state: State):
         self._selector_state = selector_state
 
     async def show_suggestions(self, message: Message, state: FSMContext):
+        """Shows geosuggest menu and changes state. Invoke by yourself.\n
+
+        Keyword arguments:\n
+        message (Message): message to which bot answers with the menu.\n
+        state (FSMContext): user's fsm\n
+        """
+
         try:
             place_name: str = message.text
             if len(place_name) == 0:
@@ -50,6 +63,14 @@ class GeosuggestSelector:
     async def selected_place(
         self, callback: CallbackQuery, state: FSMContext
     ):  # only call from Selector's buttons. Adds place to FSMContext
+        """Invoke from selector's buttons. Use filter like F.data.contains(KEYBOARD_PREFIX).\n
+        Puts chosen place in FSMContext data by tag "place"(or PLACE_KEY).\n
+
+        Keyword arguments:\n
+        callback: callback from geosuggest button\n
+        state: user's fsm\n
+        """
+
         callback_data: str = callback.data
         place_id = int(callback_data[-1])
         data = await state.get_data()

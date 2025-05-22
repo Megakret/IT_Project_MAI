@@ -22,9 +22,17 @@ class NoPaginatorFound(Exception):
     pass
 
 
-# Pass in every public function additional args to function that gets paged data
-# argument message is just any message, so paginator service could send one by itself and start paginator
 class Paginator:
+    """Paginator instance which is anchored to telegram message. Should not be used in external code.\n
+    This class exists only for paginator service.\n
+    \n
+    items_per_page (int): amount of data which is displayed on a single page\n
+    get_data_by_page: function which accepts page (int) and items_per_page (int) as required parameters and\n
+    any other parameter as you want\n
+    paginator_service: PaginatorService instance that created paginator\n
+    message: message that paginator is anchored to\n
+    """
+
     def __init__(
         self,
         items_per_page: int,
@@ -97,12 +105,37 @@ class Paginator:
 
 
 class PaginatorService:
+    """Creates paginator service which is used for displaying paged data to telegram\n
+    Create it as a global variable in same file with the router. Invoke its functions yourself.\n
+    Declare a function that gets paged data.\n
+    Keyword arguments:\n
+    postfix (str): postfix that is appended to callback data which is sent by paginator keyboard\n
+    items_per_page (int): amount of data which is displayed on a single page\n
+    get_data_by_page: coroutine which accepts page (int) and items_per_page (int) as required parameters and returns list of paged data as list of str\n
+    any other parameter as you want\n
+    no_pages_message (str): message that is displayed instead of paginator when no data for paging\n
+    """
+
     def update_kb(self, page: int) -> InlineKeyboardMarkup:
+        """Dont use this function. It is for paginator instance.
+
+        Keyword arguments:
+        page: current page.
+        """
+
         return generate_page_kb(page, self._postfix)
 
     async def start_paginator_on_message(
         self, message: Message, state: FSMContext, *args, **kwargs
     ) -> None:
+        """starts paginator on already existing message\n
+
+        Keyword arguments:\n
+        message: message that paginator is anchored to\n
+        state: fsmcontext of the user\n
+        *args, **kwargs: parameters which are passed to self._get_data_by_page\n
+        """
+
         paginator = Paginator(
             self._items_per_page, self._get_data_by_page, self, message
         )
@@ -114,9 +147,13 @@ class PaginatorService:
 
     async def start_paginator(
         self, message: Message, state: FSMContext, *args, **kwargs
-    ) -> (
-        None
-    ):  # paginator service automatically creates message with paginator and generates the first page with given parameters
+    ) -> None:
+        """paginator service automatically creates message with paginator and generates the first page with given parameters\n
+        Keyword arguments:\n
+        message: message that is used to locate user chat. Bot will answer to it with paginator\n
+        state: fsmcontext of the user\n
+        *args, **kwargs: parameters which are passed to self._get_data_by_page\n
+        """
         paginator = Paginator(self._items_per_page, self._get_data_by_page, self)
         await paginator.setup(message, *args, **kwargs)
         await state.update_data({("paginator" + self._postfix): paginator})
@@ -124,6 +161,14 @@ class PaginatorService:
     async def _prepare_paginator(
         self, callback: CallbackQuery, state: FSMContext, *args, **kwargs
     ) -> Paginator:
+        """prepares paginator before displaying page. Reattaches it to another message if it needs to\n
+
+        Keyword arguments:\n
+        callback: callback that comes from paginator button\n
+        state: fsmcontext of the user\n
+        *args, **kwargs: parameters which are passed to self._get_data_by_page\n
+        """
+
         data: dict = await state.get_data()
         try:
             paginator: Paginator = data["paginator" + self._postfix]
@@ -139,6 +184,14 @@ class PaginatorService:
     async def indicator_clicked(
         self, callback: CallbackQuery, state: FSMContext, *args, **kwargs
     ) -> None:
+        """Must be invoked on button which has current page number. Updates paginator if new data occured or some deleted.\n
+
+        Keyword arguments:\n
+        callback: callback that comes from paginator button\n
+        state: fsmcontext of the user\n
+        *args, **kwargs: parameters which are passed to self._get_data_by_page\n
+        """
+
         paginator: Paginator = await self._prepare_paginator(
             callback, state, *args, **kwargs
         )
@@ -148,6 +201,14 @@ class PaginatorService:
     async def show_next_page(
         self, callback: CallbackQuery, state: FSMContext, *args, **kwargs
     ) -> None:
+        """Must be invoked on next page button press\n
+
+        Keyword arguments:\n
+        callback: callback that comes from paginator button\n
+        state: fsmcontext of the user\n
+        *args, **kwargs: parameters which are passed to self._get_data_by_page\n
+        """
+
         paginator: Paginator = await self._prepare_paginator(
             callback, state, *args, **kwargs
         )
@@ -156,12 +217,25 @@ class PaginatorService:
     async def show_prev_page(
         self, callback: CallbackQuery, state: FSMContext, *args, **kwargs
     ) -> None:
+        """Must be invoked on prev page button press\n
+
+        Keyword arguments:\n
+        callback: callback that comes from paginator button\n
+        state: fsmcontext of the user\n
+        *args, **kwargs: parameters which are passed to self._get_data_by_page\n
+        """
         paginator: Paginator = await self._prepare_paginator(
             callback, state, *args, **kwargs
         )
         await paginator.show_prev_page(callback, *args, **kwargs)
 
     async def update_paginator(self, state: FSMContext, *args, **kwargs):
+        """Use it to update current paginator by some event which are not paginator button presses\n
+
+        Keyword arguments:\n
+        state: fsmcontext of the user\n
+        *args, **kwargs: parameters which are passed to self._get_data_by_page\n
+        """
         data: dict = await state.get_data()
         try:
             current_paginator: Paginator = data["paginator" + self._postfix]
@@ -173,7 +247,7 @@ class PaginatorService:
     def no_pages_message(self):
         return self._no_pages_message
 
-    def __init__(  # declare it as a global variable
+    def __init__(
         self,
         postfix: str,
         items_per_page: int,
@@ -184,13 +258,3 @@ class PaginatorService:
         self._items_per_page = items_per_page
         self._get_data_by_page = get_data_by_page
         self._no_pages_message = no_pages_message
-        # router.message.register(self.start_paginator, Command(appear_command))
-        # router.callback_query.register(
-        #     self.show_next_page, F.data == f"next_page_{postfix}"
-        # )
-        # router.callback_query.register(
-        #     self.show_prev_page, F.data == f"prev_page_{postfix}"
-        # )
-        # router.callback_query.register(
-        #     self.indicator_clicked, F.data == f"page_indicator_{postfix}"
-        # )
