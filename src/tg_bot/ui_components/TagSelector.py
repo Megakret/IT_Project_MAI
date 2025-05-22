@@ -15,8 +15,8 @@ TAGS = {
     "shopping_center": "Торговый центр",
     "for_friends": "Для друзей",
 }
-TAG_DATA_KEY = "tag_list"
-
+TAG_DATA_KEY = "tag_set"
+LAST_TAG_KEY = "last_tag"
 
 # class SelectTagsStates(StatesGroup):
 #     selecting_tag = State()
@@ -27,9 +27,10 @@ def tag_handler_wrapper(tag: str, message_writing: bool = True) -> Coroutine:
     async def routine(message: Message, state: FSMContext):
         nonlocal tag
         data: dict[str, any] = await state.get_data()
-        tag_list: list[str] = data.get("tag_list", [])
-        tag_list.append(tag)
-        await state.update_data(tag_list=tag_list)
+        tag_set: set[str] = data.get(TAG_DATA_KEY, set())
+        tag_set.add(tag)
+        await state.update_data(last_tag=tag)
+        await state.update_data(tag_set=tag_set)
         if message_writing:
             await message.answer(f"Вы выбрали тэг: {TAGS[tag]}")
         else:
@@ -64,7 +65,7 @@ class TagSelector:
         formed_message: str = start_message
         formed_message += "\n".join(map(lambda x: f"/{x} - {TAGS[x]}", TAGS))
         await state_machine.set_state(self._selecting_state)
-        await state_machine.update_data(**{TAG_DATA_KEY: []})
+        await state_machine.update_data(**{TAG_DATA_KEY: set()})
         await message.answer(formed_message, reply_markup=keyboard)
 
     async def show_tag_menu_on_callback(
@@ -77,5 +78,5 @@ class TagSelector:
         formed_message: str = start_message
         formed_message += "\n".join(map(lambda x: f"/{x} - {TAGS[x]}", TAGS))
         await state_machine.set_state(self._selecting_state)
-        await state_machine.update_data(**{TAG_DATA_KEY: []})
+        await state_machine.update_data(**{TAG_DATA_KEY: set()})
         await callback.message.edit_text(formed_message, reply_markup=keyboard)

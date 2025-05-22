@@ -1,7 +1,7 @@
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, ReplyKeyboardRemove, CallbackQuery
 from tg_bot.keyboards import channel_kb
-from tg_bot.routers.channel_fetch_router import (
+from tg_bot.routers.channel_fetch_functions import (
     add_channel,
     get_channels,
     remove_channel,

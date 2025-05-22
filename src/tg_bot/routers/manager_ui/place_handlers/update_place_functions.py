@@ -11,7 +11,7 @@ from tg_bot.keyboards import (
 )
 import database.db_functions as db
 from tg_bot.ui_components.GeosuggestSelector import GeosuggestSelector
-from tg_bot.ui_components.TagSelector import TagSelector
+from tg_bot.ui_components.TagSelector import TagSelector, TAG_DATA_KEY
 
 
 async def start_update_function(message: Message):
@@ -112,9 +112,9 @@ async def update_tags(
 ):
     data = await state.get_data()
     try:
-        tag_list: list[str] = data["tag_list"]
+        tag_set: list[str] = data[TAG_DATA_KEY]
         place: Place = data["place"]
-        await db.add_place_tags(session, place.get_info(), tuple(tag_list))
+        await db.add_place_tags(session, place.get_info(), tuple(tag_set))
         await show_place_info(
             callback.message,
             state,

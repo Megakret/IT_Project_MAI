@@ -47,10 +47,20 @@ async def show_suggestions(message: Message, state: FSMContext):
 
 
 @router.callback_query(F.data.contains(KEYBOARD_PREFIX), AdminAddPlaceFSM.choose_place)
-async def choose_suggested_place(callback: CallbackQuery, state: FSMContext):
-    print("chose place")
-    await add_place_funcs.choose_suggested_place(callback, state, geosuggest_selector)
-    await state.set_state(AdminAddPlaceFSM.enter_description)
+async def choose_suggested_place(
+    callback: CallbackQuery, state: FSMContext, session: AsyncSession
+):
+    try:
+        await add_place_funcs.choose_suggested_place(
+            callback, state, geosuggest_selector, session
+        )
+        await state.set_state(AdminAddPlaceFSM.enter_description)
+    except ValueError as e:
+        print(e)
+        await callback.message.answer(
+            "Это место уже было добавлено.", reply_markup=place_manager_kb
+        )
+        await state.set_state(AdminAddPlaceFSM.place_state)
 
 
 @router.message(AdminAddPlaceFSM.enter_description)
