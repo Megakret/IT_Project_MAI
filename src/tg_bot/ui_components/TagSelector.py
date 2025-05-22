@@ -20,6 +20,13 @@ LAST_TAG_KEY = "last_tag"
 
 
 def tag_handler_wrapper(tag: str, message_writing: bool = True) -> Coroutine:
+    """Decorator for handling adding tag\n
+
+    Keyword arguments:\n
+    tag (str): tag for which handler is created\n
+    message_writing (bool): does handler delete messages on add tag command invoked\n
+    """
+
     async def routine(message: Message, state: FSMContext):
         nonlocal tag
         data: dict[str, any] = await state.get_data()
@@ -36,6 +43,15 @@ def tag_handler_wrapper(tag: str, message_writing: bool = True) -> Coroutine:
 
 
 class TagSelector:
+    """Class for managing tag adding logic. On selecting tag puts tag in fsmcontext data by key tag_set.\n
+    Saves last tag in same data by key last_tag.\n
+
+    Keyword arguments:\n
+    selecting_state (State): state in which user adds tags.\n
+    router (Router): router to which tag_selector handlers are anchored.\n
+    write_messages (bool): does tag selector deletes user messages on tag add.\n
+    """
+
     def __init__(
         self, selecting_state: State, router: Router, write_messages: bool = True
     ):
@@ -58,6 +74,15 @@ class TagSelector:
         keyboard: InlineKeyboardMarkup | None = None,
         start_message: str = "Нажмите на тег </tag>, чтобы найти по нему места: \n",
     ):
+        """Shows tag_menu. Changes state to self._selecting_state\n
+
+        Keyword arguments:
+        message: message to which bot is answering\n
+        state_machine: user FSMContext\n
+        keyboard: inline keyboard for tag intro message.\n
+        start_message (str): message before tag menu.\n
+        """
+
         formed_message: str = start_message
         formed_message += "\n".join(map(lambda x: f"/{x} - {TAGS[x]}", TAGS))
         await state_machine.set_state(self._selecting_state)
@@ -71,6 +96,14 @@ class TagSelector:
         keyboard: InlineKeyboardMarkup | None = None,
         start_message: str = "Нажмите на тег </tag>, чтобы найти по нему места: \n",
     ):
+        """Shows tag_menu. Changes state to self._selecting_state\n
+
+        Keyword arguments:\n
+        callback: callback to which bot is answering\n
+        state_machine: user FSMContext\n
+        keyboard: inline keyboard for tag intro message.\n
+        start_message (str): message before tag menu.\n
+        """
         formed_message: str = start_message
         formed_message += "\n".join(map(lambda x: f"/{x} - {TAGS[x]}", TAGS))
         await state_machine.set_state(self._selecting_state)
