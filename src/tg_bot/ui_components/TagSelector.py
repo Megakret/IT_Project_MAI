@@ -8,7 +8,7 @@ from aiogram.types import (
 )
 from typing import Coroutine
 
-# It's up to script to provide message instruction for tag input
+# Put here new tags
 TAGS = {
     "park": "Парк",
     "museum": "Музей",
@@ -17,10 +17,6 @@ TAGS = {
 }
 TAG_DATA_KEY = "tag_set"
 LAST_TAG_KEY = "last_tag"
-
-# class SelectTagsStates(StatesGroup):
-#     selecting_tag = State()
-#     tag_select_finished = State()
 
 
 def tag_handler_wrapper(tag: str, message_writing: bool = True) -> Coroutine:

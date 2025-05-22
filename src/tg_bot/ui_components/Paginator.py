@@ -111,12 +111,18 @@ class PaginatorService:
     Keyword arguments:\n
     postfix (str): postfix that is appended to callback data which is sent by paginator keyboard\n
     items_per_page (int): amount of data which is displayed on a single page\n
-    get_data_by_page: function which accepts page (int) and items_per_page (int) as required parameters and\n
+    get_data_by_page: coroutine which accepts page (int) and items_per_page (int) as required parameters and returns list of paged data as list of str\n
     any other parameter as you want\n
     no_pages_message (str): message that is displayed instead of paginator when no data for paging\n
     """
 
     def update_kb(self, page: int) -> InlineKeyboardMarkup:
+        """Dont use this function. It is for paginator instance.
+
+        Keyword arguments:
+        page: current page.
+        """
+
         return generate_page_kb(page, self._postfix)
 
     async def start_paginator_on_message(
