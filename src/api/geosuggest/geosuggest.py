@@ -1,8 +1,8 @@
 from os import getenv
 from httpx import AsyncClient
 
-from src.config import GEOSUGGEST_API_KEY
-from src.api.geosuggest.geosuggestresult import GeosuggestResult
+from config import GEOSUGGEST_API_KEY
+from api.geosuggest.geosuggestresult import GeosuggestResult
 
 
 class NonPositivePlacesAmountException(Exception):

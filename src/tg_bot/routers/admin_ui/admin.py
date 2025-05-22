@@ -6,7 +6,7 @@ from tg_bot.keyboards import admin_kb
 from tg_bot.routers.role_model_fsm.admin_fsm import *
 from sqlalchemy.ext.asyncio import AsyncSession
 from database.db_functions import is_admin
-from tg_bot.routers.start_hadler import handle_cmd_start
+from tg_bot.routers.start_handler import handle_cmd_start
 
 router = Router()
 
