@@ -1,6 +1,10 @@
 import asyncio
 from os import getenv
 from aiogram import Bot, Dispatcher, Router
+import sys
+from pathlib import Path
+
+# Добавляем корень проекта в PYTHONPATH
 
 from database.db_functions import init_database
 from tg_bot.DispatcherHandler import DispatcherHandler

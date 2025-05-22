@@ -1,13 +1,8 @@
 from aiogram import Router, F
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
-from aiogram.types import Message, ReplyKeyboardRemove
+from aiogram.types import Message
 from tg_bot.keyboards import channel_kb, NEXT_PAGE, PREV_PAGE, INDICATOR_CLICKED
-from tg_bot.routers.channel_fetch_functions import (
-    add_channel,
-    get_channels,
-    remove_channel,
-)
 from tg_bot.routers.manager_ui.manager import ManagerFSM
 from tg_bot.routers.role_model_fsm.manager_fsm import *
 from tg_bot.routers.manager_ui.manager_functions import *

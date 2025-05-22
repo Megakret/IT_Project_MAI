@@ -8,14 +8,13 @@ from aiogram import F
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.geosuggest.place import Place
-
 from tg_bot.routers.user_fsm import UserFSM
 from tg_bot.keyboards import (
     get_user_keyboard,
     insert_place_tags_kb,
     yes_no_inline,
     INSERT_PLACE_TAGS_TAG,
-    back_kb
+    back_kb,
 )
 from tg_bot.ui_components.GeosuggestSelector import (
     GeosuggestSelector,
@@ -27,7 +26,7 @@ from tg_bot.ui_components.TagSelector import (
 )
 from tg_bot.tg_exceptions import ScoreOutOfRange
 from tg_bot.utils_and_validators import validate_message_size, MessageIsTooLarge
-from tg_bot.config import MAX_COMMENT_SIZE
+from config import MAX_COMMENT_SIZE
 import database.db_functions as db
 from database.db_exceptions import UniqueConstraintError
 
@@ -96,9 +95,7 @@ async def check_place_existence_handler(
 
 @router.callback_query(F.data == "yes", NewPlaceFSM.want_to_add_to_database)
 async def user_wants_to_add_desc_handler(callback: CallbackQuery, state: FSMContext):
-    await callback.message.answer(
-        "Отлично. Введите описание места."
-    )
+    await callback.message.answer("Отлично. Введите описание места.")
     await state.set_state(NewPlaceFSM.enter_description)
     await callback.answer()
 
