@@ -19,7 +19,7 @@ from tg_bot.keyboards import (
 )
 from tg_bot.ui_components.TagSelector import TAG_DATA_KEY, TagSelector, LAST_TAG_KEY
 from tg_bot.utils_and_validators import shorten_message
-from tg_bot.config import MAX_DESCRIPTION_VIEWSIZE
+from config import MAX_DESCRIPTION_VIEWSIZE
 
 router = Router()
 POSTFIX = "places_by_tag"

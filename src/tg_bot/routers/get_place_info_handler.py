@@ -33,7 +33,7 @@ from tg_bot.keyboards import (
     get_user_keyboard,
 )
 from tg_bot.utils_and_validators import MessageIsTooLarge, validate_message_size
-from tg_bot.config import MAX_COMMENT_SIZE
+from config import MAX_COMMENT_SIZE
 
 
 router = Router()

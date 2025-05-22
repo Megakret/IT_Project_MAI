@@ -18,7 +18,7 @@ from tg_bot.routers.role_model_fsm.admin_fsm import AdminFSM, UserManipulationFS
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import NoResultFound
 
-from tg_bot.config import BOT_USERNAME
+from config import BOT_USERNAME
 from tg_bot.ui_components.Paginator import PaginatorService
 from tg_bot.ui_components.GeosuggestSelector import (
     GeosuggestSelector,

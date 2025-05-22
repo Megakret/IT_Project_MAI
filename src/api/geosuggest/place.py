@@ -4,9 +4,9 @@ import json
 
 
 class Place:
-    __translation: Dict[str, str] = None
+    __TRANSLATIONS: Dict[str, str] = None
     with open("src/api/geosuggest/translation.json", "r", encoding="utf-8") as file:
-        __translation = json.load(file)
+        __TRANSLATIONS = json.load(file)
 
     def __init__(self, data: dict):
         self.__title: str = data["title"]["text"]
@@ -14,7 +14,7 @@ class Place:
         # Translates tags to Russian
         self.__tags: Tuple[str] = tuple(
             map(
-                lambda x: Place.__translation[x] if x in Place.__translation else x,
+                lambda x: Place.__TRANSLATIONS[x] if x in Place.__TRANSLATIONS else x,
                 data["tags"],
             )
         )

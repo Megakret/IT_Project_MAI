@@ -9,7 +9,7 @@ from tg_bot.ui_components.Paginator import PaginatorService
 from database.db_functions import get_user_places, Place
 from tg_bot.keyboards import NEXT_PAGE, PREV_PAGE, INDICATOR_CLICKED
 from tg_bot.utils_and_validators import shorten_message
-from tg_bot.config import MAX_DESCRIPTION_VIEWSIZE
+from config import MAX_DESCRIPTION_VIEWSIZE
 
 router = Router()
 PLACES_PER_PAGE = 4

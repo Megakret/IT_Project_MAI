@@ -1,20 +1,22 @@
-from api.gpt.GptRequest import GptRequest
 import json
 from copy import deepcopy
 from httpx import AsyncClient
+
+from config import GPT_INDETIFICATION_KEY
+from api.gpt.GptRequest import GptRequest
 
 
 class GptTalker(GptRequest):
 
     with open("src/api/gpt/json/consultant_prompt.json", encoding="UTF-8") as file:
         __default_prompt = json.load(file)
+        __default_prompt["modelUri"] = (
+            f"gpt://{GPT_INDETIFICATION_KEY}/yandexgpt-lite/latest"
+        )
 
     def __init__(self):
         super().__init__()
         self.__prompt = deepcopy(GptTalker.__default_prompt)
-        self.__prompt["modelUri"] = (
-            f"gpt://{self._indentification_key}/yandexgpt-lite/rc"
-        )
 
     async def talk(self, client: AsyncClient, user_message: str) -> str:
         self.__prompt["messages"].append({"role": "user", "text": user_message})

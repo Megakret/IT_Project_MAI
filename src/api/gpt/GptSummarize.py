@@ -1,19 +1,21 @@
-from api.gpt.GptRequest import GptRequest
 from httpx import AsyncClient
 import json
 from copy import deepcopy
 
+from config import GPT_INDETIFICATION_KEY
+from api.gpt.GptRequest import GptRequest
+
 
 class GptSummarize(GptRequest):
     with open("src/api/gpt/json/review_prompt.json", encoding="UTF-8") as file:
-        __default_prompt = json.load(file)
+        __default_prompt: dict = json.load(file)
+        __default_prompt["modelUri"] = (
+            f"gpt://{GPT_INDETIFICATION_KEY}/yandexgpt-lite/latest"
+        )
 
     def __init__(self):
         super().__init__()
         self.__prompt = deepcopy(GptSummarize.__default_prompt)
-        self.__prompt["modelUri"] = (
-            f"gpt://{self._indentification_key}/yandexgpt-lite/latest"
-        )
 
     def __construct_message(reviews: list[str]) -> str:
         s = "Сделай выжимку из данных отзывов о местах:\n\n"

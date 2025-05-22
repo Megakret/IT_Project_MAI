@@ -1,6 +1,8 @@
 from os import getenv
-from api.geosuggest.geosuggestresult import GeosuggestResult
 from httpx import AsyncClient
+
+from src.config import GEOSUGGEST_API_KEY
+from src.api.geosuggest.geosuggestresult import GeosuggestResult
 
 
 class NonPositivePlacesAmountException(Exception):
@@ -13,7 +15,6 @@ class TooManyPlacesException(Exception):
 
 class Geosuggest:
     # load_dotenv() uncomment when you do local testing. we already are loading dotenv in main.py
-    __api_key: str = getenv("GEOSUGGEST_KEY")
 
     @staticmethod
     def __form_request(text: str, amount: int = 5) -> str:
@@ -25,7 +26,7 @@ class Geosuggest:
                 "Only positive integer amount of places is allowed"
             )
 
-        return f"https://suggest-maps.yandex.ru/v1/suggest?apikey={Geosuggest.__api_key}&text={text}&highlight=0&types=biz&results={amount}"
+        return f"https://suggest-maps.yandex.ru/v1/suggest?apikey={GEOSUGGEST_API_KEY}&text={text}&highlight=0&types=biz&results={amount}"
 
     # Gets text to request places and returns GeosuggestResult
     @staticmethod
@@ -33,7 +34,9 @@ class Geosuggest:
         async with AsyncClient() as client:
             try:
                 return GeosuggestResult(
-                    (await client.get(Geosuggest.__form_request(text))).json()["results"]
+                    (await client.get(Geosuggest.__form_request(text))).json()[
+                        "results"
+                    ]
                 )
             except KeyError:
                 return GeosuggestResult([])

@@ -1,7 +1,9 @@
-from api.gpt.GptRequest import GptRequest
 import json
 from copy import deepcopy
 from httpx import AsyncClient
+
+from config import GPT_KEY, GPT_INDETIFICATION_KEY
+from api.gpt.GptRequest import GptRequest
 
 
 class GptRetellingDescription(GptRequest):
@@ -9,13 +11,13 @@ class GptRetellingDescription(GptRequest):
         "src/api/gpt/json/retelling_description_prompt.json", encoding="utf-8"
     ) as file:
         __default_prompt: dict = json.load(file)
+        __default_prompt["modelUri"] = (
+            f"gpt://{GPT_INDETIFICATION_KEY}/yandexgpt-lite/latest"
+        )
 
     def __init__(self):
         super().__init__()
         self.__prompt = deepcopy(GptRetellingDescription.__default_prompt)
-        self.__prompt["modelUri"] = (
-            f"gpt://{self._indentification_key}/yandexgpt-lite/latest"
-        )
 
     def __construct_message(description):
         s = "Сделай краткий пересказ следующего описания места:\n\n"

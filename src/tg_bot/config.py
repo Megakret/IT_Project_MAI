@@ -1,3 +1,0 @@
-MAX_COMMENT_SIZE = 400
-MAX_DESCRIPTION_VIEWSIZE = 400
-BOT_USERNAME = "entertainment_assistant_bot"
