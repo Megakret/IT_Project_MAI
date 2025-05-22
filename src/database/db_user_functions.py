@@ -5,6 +5,7 @@ from sqlalchemy.exc import IntegrityError
 
 from database.db_exceptions import UniqueConstraintError, ConstraintError
 from database.db_tables import User
+from database.db_user_place_functions import get_comments_of_user, remove_review
 
 
 async def get_id_by_username(session: AsyncSession, username: str) -> int:
@@ -49,7 +50,7 @@ async def add_user(
 
 
 async def delete_user(session: AsyncSession, user_id: int) -> None:
-    usr = session.get(User, user_id)
+    usr = await session.get(User, user_id)
     if usr is None:
         raise ValueError(f"User with ID {user_id} not found")
     await session.delete(usr)
@@ -69,6 +70,9 @@ async def delete_user_data_by_username(session: AsyncSession, username: str) -> 
     if not id:
         raise ValueError(f"User with username {username} not found")
     await delete_user(session, id)
+    # comments = await get_comments_of_user(session, 1, 100000000, username)
+    # for place, comment, score in comments:
+    # await remove_review(session, username, place.id)
     await add_user(session, id, username, 1, True)
     await session.commit()
 
