@@ -1,8 +1,9 @@
-from os import getenv
 from httpx import AsyncClient
+from httpx_retries import RetryTransport
 
 from config import GEOSUGGEST_API_KEY
 from api.geosuggest.geosuggestresult import GeosuggestResult
+from api.geosuggest.geosuggest_abstract import GeosuggestABC
 
 
 class NonPositivePlacesAmountException(Exception):
@@ -13,8 +14,7 @@ class TooManyPlacesException(Exception):
     pass
 
 
-class Geosuggest:
-    # load_dotenv() uncomment when you do local testing. we already are loading dotenv in main.py
+class GeosuggestYandex(GeosuggestABC):
 
     @staticmethod
     def __form_request(text: str, amount: int = 5) -> str:
@@ -31,10 +31,10 @@ class Geosuggest:
     # Gets text to request places and returns GeosuggestResult
     @staticmethod
     async def request(text: str) -> GeosuggestResult:
-        async with AsyncClient() as client:
+        async with AsyncClient(transport=RetryTransport()) as client:
             try:
                 return GeosuggestResult(
-                    (await client.get(Geosuggest.__form_request(text))).json()[
+                    (await client.get(GeosuggestYandex.__form_request(text))).json()[
                         "results"
                     ]
                 )

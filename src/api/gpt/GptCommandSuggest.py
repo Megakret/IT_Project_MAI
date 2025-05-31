@@ -1,12 +1,13 @@
-from api.gpt.GptRequest import GptRequest
 import json
 from copy import deepcopy
-
 from httpx import AsyncClient
+from httpx_retries import RetryTransport
+
 from config import GPT_INDETIFICATION_KEY
+from api.gpt.GptRequest import GptRequestYandex
 
 
-class GptCommand(GptRequest):
+class GptCommand(GptRequestYandex):
 
     with open("src/api/gpt/json/command_prompt.json", encoding="UTF-8") as file:
         __default_prompt = json.load(file)
@@ -28,7 +29,7 @@ class GptCommand(GptRequest):
         return response["result"]["alternatives"][0]["message"]["text"]
 
     async def command_NAC(self, user_message: str) -> str:
-        async with AsyncClient() as client:
+        async with AsyncClient(transport=RetryTransport()) as client:
             return await self.command(client, user_message)
 
 

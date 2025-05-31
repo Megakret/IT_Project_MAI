@@ -1,12 +1,13 @@
 import json
 from copy import deepcopy
 from httpx import AsyncClient
+from httpx_retries import RetryTransport
 
 from config import GPT_INDETIFICATION_KEY
-from api.gpt.GptRequest import GptRequest
+from api.gpt.GptRequest import GptRequestYandex
 
 
-class GptTalker(GptRequest):
+class GptTalker(GptRequestYandex):
 
     with open("src/api/gpt/json/consultant_prompt.json", encoding="UTF-8") as file:
         __default_prompt = json.load(file)
@@ -27,7 +28,7 @@ class GptTalker(GptRequest):
         return response["result"]["alternatives"][0]["message"]["text"]
 
     async def talk_NAC(self, user_message: str) -> str:
-        async with AsyncClient() as client:
+        async with AsyncClient(transport=RetryTransport()) as client:
             return await self.talk(client, user_message)
 
 

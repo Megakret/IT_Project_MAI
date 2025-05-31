@@ -2,7 +2,7 @@ from aiogram import Router, types
 from sqlalchemy.ext.asyncio import AsyncSession
 from asyncio import gather
 from api.gpt.GptTgReview import GptTgReview
-from api.geosuggest.geosuggest import Geosuggest
+from api.geosuggest.geosuggest_yandex import GeosuggestYandex
 import database.db_functions as db
 from database.db_exceptions import UniqueConstraintError
 from tg_bot.routers.channel_fetch_functions import (
@@ -35,7 +35,7 @@ async def fetch_data(message: types.Message, session: AsyncSession) -> None:
         print("Message from " + message.chat.full_name + " is not about place")
         return
     print("passed if")
-    geosuggest = Geosuggest()
+    geosuggest = GeosuggestYandex()
     tasks = [geosuggest.request(place) for place in out["place"]]
     print("passed corutine creation")
     places = await gather(*tasks)
