@@ -43,7 +43,7 @@ if __name__ == "__main__":
         load_dotenv()
 
         gpt: GptCommand = GptCommand()
-        async with AsyncClient(RETRY_POLICY_TRANSPORT) as client:
+        async with AsyncClient(transport=RETRY_POLICY_TRANSPORT) as client:
             while s := input():
                 print(await gpt.command(client, s))
 

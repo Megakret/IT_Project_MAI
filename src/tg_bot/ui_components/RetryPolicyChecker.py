@@ -15,15 +15,19 @@ class RetryPolicyRequest:
         state: FSMContext,
         expected_time: int = EXPECTED_TIME,
     ):
-        self._async_request = asyncio.create_task(async_request)
+        self._async_routine = async_request
         self._expected_time = expected_time
         self._context = state
 
     async def request(self, message_to_answer: Message):
         try:
+            task = asyncio.create_task(self._async_routine)
             await self._context.update_data(**{REQUEST_TAG: self})
             self._message = await message_to_answer.answer("Ожидайте...")
-            result, _ = await asyncio.gather(self._async_request, self._monitor())
+            monitor_task = asyncio.create_task(self._monitor(task))
+            result = await task
+            if not monitor_task.done():
+                monitor_task.cancel()
             await self._message.delete()
             return result
         except TransportError:
@@ -31,9 +35,9 @@ class RetryPolicyRequest:
         finally:
             await self._context.update_data(**{REQUEST_TAG: None})
 
-    async def _monitor(self):
+    async def _monitor(self, task: asyncio.Task):
         await asyncio.sleep(self._expected_time)
-        if not self._async_request.done():
+        if not task.done():
             await self._message.edit_text(
                 "Запрос занимает больше времени, чем ожидалось..."
             )
