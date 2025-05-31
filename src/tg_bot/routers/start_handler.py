@@ -1,8 +1,8 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from aiogram.fsm.context import FSMContext
-from aiogram.filters import CommandStart, Command
+from aiogram.filters import CommandStart
 from aiogram.types import Message
-from aiogram import Router, Bot
+from aiogram import Router
 
 from database.db_exceptions import UniqueConstraintError, ConstraintError
 import database.db_functions as db

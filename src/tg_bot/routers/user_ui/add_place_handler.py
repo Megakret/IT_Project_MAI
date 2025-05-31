@@ -1,10 +1,8 @@
-from aiogram import Router
+from aiogram import Router, F
 from aiogram.filters import Command
 from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from aiogram.types import ReplyKeyboardRemove
-from aiogram import F
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.geosuggest.place import Place

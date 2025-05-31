@@ -2,7 +2,7 @@ from aiogram.types import Message, CallbackQuery
 from aiogram import Router
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import State, StatesGroup
+from aiogram.fsm.state import State
 from aiogram.types import (
     InlineKeyboardMarkup,
 )
