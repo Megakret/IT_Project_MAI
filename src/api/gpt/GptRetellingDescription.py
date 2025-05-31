@@ -3,7 +3,7 @@ from copy import deepcopy
 from httpx import AsyncClient
 from httpx_retries import RetryTransport
 
-from config import GPT_KEY, GPT_INDETIFICATION_KEY
+from config import GPT_KEY, GPT_INDETIFICATION_KEY, RETRY_POLICY_TRANSPORT
 from api.gpt.GptRequest import GptRequestYandex
 
 
@@ -37,5 +37,5 @@ class GptRetellingDescription(GptRequestYandex):
         return response.json()["result"]["alternatives"][0]["message"]["text"]
 
     async def retell_nac(self, description: str):
-        async with AsyncClient(transport=RetryTransport()) as client:
+        async with AsyncClient(transport=RetryTransport(RETRY_POLICY_TRANSPORT)) as client:
             return await self.retell(client, description)

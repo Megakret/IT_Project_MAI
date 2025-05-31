@@ -1,7 +1,7 @@
 from httpx import AsyncClient
 from httpx_retries import RetryTransport
 
-from config import GEOSUGGEST_API_KEY
+from config import GEOSUGGEST_API_KEY, RETRY_POLICY_TRANSPORT
 from api.geosuggest.geosuggestresult import GeosuggestResult
 from api.geosuggest.geosuggest_abstract import GeosuggestABC
 
@@ -31,7 +31,7 @@ class GeosuggestYandex(GeosuggestABC):
     # Gets text to request places and returns GeosuggestResult
     @staticmethod
     async def request(text: str) -> GeosuggestResult:
-        async with AsyncClient(transport=RetryTransport()) as client:
+        async with AsyncClient(transport=RetryTransport(RETRY_POLICY_TRANSPORT)) as client:
             try:
                 return GeosuggestResult(
                     (await client.get(GeosuggestYandex.__form_request(text))).json()[
