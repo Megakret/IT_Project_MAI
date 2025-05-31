@@ -266,7 +266,6 @@ async def enter_comment(message: Message, state: FSMContext, session: AsyncSessi
                 comment=comment,
             )  # adding user place by default so comment will save
         except UniqueConstraintError as e:
-            print(e)
             pass
         await db.rate(session, message.from_user.id, place.get_info(), score)
         await db.add_comment(session, message.from_user.id, place.get_info(), comment)
@@ -275,7 +274,6 @@ async def enter_comment(message: Message, state: FSMContext, session: AsyncSessi
     except NoPlaceException:
         await message.answer("Попробуйте ввести место еще раз")
     except MessageIsTooLarge as e:
-        print(e)
         await message.answer(
             f"В вашем комментарие слишком много символов: {e.message_size}."
             f"Максимальное количество символов: {e.max_size}"

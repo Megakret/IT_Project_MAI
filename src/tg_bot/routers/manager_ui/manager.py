@@ -1,7 +1,7 @@
 from aiogram import Router, F
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
-from aiogram.types import Message
+from aiogram.types import Message, ErrorEvent
 from sqlalchemy.ext.asyncio import AsyncSession
 from database.db_functions import is_manager
 from tg_bot.keyboards import manager_kb
@@ -12,7 +12,12 @@ from tg_bot.routers.manager_ui.manager_place import init_manager_place_panel
 from tg_bot.routers.manager_ui.manager_requests import router as manager_requests_router
 from tg_bot.routers.manager_ui.manager_channel import router as manager_channel_router
 
+import logging
+from tg_bot.loggers.manager_logger import manager_log_handler
+
 router = Router()
+logger = logging.getLogger(__name__)
+logger.addHandler(manager_log_handler)
 
 
 def init_manager_router():
@@ -43,3 +48,8 @@ async def go_back_to_manager_menu(message: Message, state: FSMContext):
 @router.message(F.text == "Назад", ManagerFSM.start_state)
 async def go_back_to_start(message: Message, state: FSMContext, session: AsyncSession):
     await handle_cmd_start(message, state, session)
+
+
+@router.error()
+async def handle_errors(error: ErrorEvent):
+    logger.critical("Uncaught error appeared: %s", error.exception, exc_info=True)

@@ -62,7 +62,7 @@ class Paginator:
                 text, reply_markup=self._paginator_service.update_kb(page), **kwargs
             )
         except TelegramBadRequest as e:
-            print(f"Paginator received same message")
+            pass
 
     async def update(self, *args, **kwargs):
         try:

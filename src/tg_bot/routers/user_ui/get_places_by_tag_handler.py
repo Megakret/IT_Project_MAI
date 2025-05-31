@@ -21,6 +21,9 @@ from tg_bot.ui_components.TagSelector import TAG_DATA_KEY, TagSelector, LAST_TAG
 from tg_bot.utils_and_validators import shorten_message
 from config import MAX_DESCRIPTION_VIEWSIZE
 
+import logging
+from tg_bot.loggers.user_logger import user_log_handler
+
 router = Router()
 POSTFIX = "places_by_tag"
 PLACES_PER_PAGE = 4
@@ -34,7 +37,8 @@ class GetPlaceByTagFSM(StatesGroup):
 tag_selector = TagSelector(
     selecting_state=GetPlaceByTagFSM.selecting_tag, router=router
 )
-
+logger = logging.getLogger(__name__)
+logger.addHandler(user_log_handler)
 
 class NoTagException(Exception):
     pass
@@ -102,7 +106,7 @@ async def next_page(callback: CallbackQuery, state: FSMContext, session: AsyncSe
         tag: str = data[LAST_TAG_KEY]
         await paginator_service.show_next_page(callback, state, session, tag)
     except KeyError as e:
-        print(e)
+        logging.error("Lost tag in next_page", exc_info=e)
         await callback.answer(
             "Что-то пошло не так. Попробуйте заново войти в меню поиска по тегам."
         )
@@ -115,7 +119,7 @@ async def prev_page(callback: CallbackQuery, state: FSMContext, session: AsyncSe
         tag: str = data[LAST_TAG_KEY]
         await paginator_service.show_prev_page(callback, state, session, tag)
     except KeyError as e:
-        print(e)
+        logging.error("Lost tag in prev_page", exc_info=e)
         await callback.answer(
             "Что-то пошло не так. Попробуйте заново войти в меню поиска по тегам."
         )
@@ -132,7 +136,7 @@ async def indicator_clicked(
         tag: str = data[LAST_TAG_KEY]
         await paginator_service.indicator_clicked(callback, state, session, tag)
     except KeyError as e:
-        print(e)
+        logging.error("Lost tag in indicator_clicked", exc_info=e)
         await callback.answer(
             "Что-то пошло не так. Попробуйте заново войти в меню поиска по тегам."
         )

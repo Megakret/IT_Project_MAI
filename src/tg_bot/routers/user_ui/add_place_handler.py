@@ -25,6 +25,8 @@ from tg_bot.ui_components.TagSelector import (
 from tg_bot.tg_exceptions import ScoreOutOfRange
 from tg_bot.utils_and_validators import validate_message_size, MessageIsTooLarge
 from config import MAX_COMMENT_SIZE
+import logging
+from tg_bot.loggers.user_logger import user_log_handler
 import database.db_functions as db
 from database.db_exceptions import UniqueConstraintError
 
@@ -41,6 +43,8 @@ class NewPlaceFSM(StatesGroup):
 
 
 router = Router()
+logger = logging.getLogger(__name__)
+logger.addHandler(user_log_handler)
 
 geosuggest_selector = GeosuggestSelector(NewPlaceFSM.choose_place)
 tag_selector = TagSelector(selecting_state=NewPlaceFSM.select_tags, router=router)
@@ -144,17 +148,13 @@ async def add_request_to_manager(
             data["description"],
             tags,
         )
-        # await db.add_place_tags(session, place.get_info(), tags)
         await callback.answer("Запрос успешно создан")
-        # await callback.message.answer(
-        #     "Хотите добавить отзыв на место?", reply_markup=yes_no_inline
-        # )
-        # await state.set_state(NewPlaceFSM.want_to_add_review)
     except KeyError:
         await state.clear()
         await callback.answer("Что-то пошло не так, попробуйте ввести команду снова")
     except UniqueConstraintError as e:
-        print(e.message)
+        logger.warning("Someone already added request")
+        logger.exception(e.message)
         await state.set_state(UserFSM.start_state)
         await callback.answer(
             "Извините, похоже, пока вы добавляли место, кто-то другой добавил его быстрее вас."
@@ -201,7 +201,6 @@ async def enter_comment_handler(
             message, state, session, message.from_user.id
         )
     except MessageIsTooLarge as e:
-        print(e)
         await message.answer(
             f"В вашем комментарие слишком много символов: {e.message_size}."
             f"Максимальное количество символов: {e.max_size}"
@@ -282,7 +281,6 @@ async def add_user_place_with_feedback(
             reply_markup=keyboard,
         )
     except UniqueConstraintError as e:
-        print(e.message)
         await message.answer(
             "Вы уже добавляли это место",
             reply_markup=keyboard,

@@ -289,7 +289,6 @@ def generate_page_kb(page: int, postfix: str) -> InlineKeyboardMarkup:
 async def get_user_keyboard(session: AsyncSession, id: int) -> ReplyKeyboardMarkup:
     try:
         right: int = await get_user_rights(session, id)
-        print(right)
         match right:
             case 4:
                 return starter_admin_kb

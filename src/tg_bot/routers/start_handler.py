@@ -3,6 +3,8 @@ from aiogram.fsm.context import FSMContext
 from aiogram.filters import CommandStart
 from aiogram.types import Message
 from aiogram import Router
+import logging
+from tg_bot.loggers.user_logger import user_log_handler
 
 from database.db_exceptions import UniqueConstraintError, ConstraintError
 import database.db_functions as db
@@ -13,6 +15,8 @@ from tg_bot.keyboards import get_user_keyboard
 
 
 router = Router()
+logger = logging.getLogger(__name__)
+logger.addHandler(user_log_handler)
 
 
 @router.message(CommandStart())
@@ -26,9 +30,9 @@ async def handle_cmd_start(
         try:
             await db.add_user(session, message.from_user.id, message.from_user.username)
         except UniqueConstraintError as e:
-            print(e.message)
+            pass
         except ConstraintError as e:
-            print(e.message)
+            logger.exception(e)
         keyboard = await get_user_keyboard(session, message.from_user.id)
         await message.answer(
             (
@@ -40,7 +44,6 @@ async def handle_cmd_start(
             parse_mode="MARKDOWN",
         )
     except UserNotFound as e:
-        print(e.message)
         await message.answer(
             "Произошла ошибка, вашего аккаунта нет в базе. Попробуйте прописать /start еще раз."
         )

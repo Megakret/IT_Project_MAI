@@ -1,21 +1,6 @@
-from api.gpt.GptTgReview import GptTgReview
-from api.geosuggest.geosuggest import Geosuggest, GeosuggestResult
-from aiogram import Router, types
+from api.geosuggest.geosuggest import GeosuggestResult
 import database.db_functions as db
-from database.db_exceptions import UniqueConstraintError
 from sqlalchemy.ext.asyncio import AsyncSession
-from asyncio import gather
-from json import load, dump
-
-# temporary start
-# valid_channel_path = "src/tg_bot/json/valid_channels.json"
-# with open(valid_channel_path, encoding="utf-8") as json_file:
-#     valid_channels: list[dict[str, str]] = load(json_file)
-
-
-# def save_channels():
-#     with open(valid_channel_path, "w", encoding="utf-8") as json_file:
-#         dump(valid_channels, json_file)
 
 
 async def add_channel(tag: str, manager_id: int, session: AsyncSession) -> bool:
@@ -48,9 +33,6 @@ async def get_channels(
         {"tag": channel_username, "manager": manager_username}
         for channel_username, manager_username in result
     ]
-
-
-# temporary end
 
 
 def parseAddress(places: GeosuggestResult) -> str:
