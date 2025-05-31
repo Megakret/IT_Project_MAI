@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from database.db_functions import get_places_with_tag, Place
 
-from tg_bot.routers.user_fsm import UserFSM
+from tg_bot.routers.user_ui.user_fsm import UserFSM
 from tg_bot.ui_components.Paginator import PaginatorService
 from tg_bot.keyboards import (
     NEXT_PAGE,

@@ -11,7 +11,7 @@ from api.geosuggest.place import Place
 from api.gpt.GptSummarize import GptSummarize
 from api.gpt.GptRetellingDescription import GptRetellingDescription
 
-from tg_bot.routers.user_fsm import UserFSM
+from tg_bot.routers.user_ui.user_fsm import UserFSM
 from tg_bot.ui_components.GeosuggestSelector import (
     GeosuggestSelector,
     KEYBOARD_PREFIX,

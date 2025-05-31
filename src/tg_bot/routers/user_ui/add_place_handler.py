@@ -8,7 +8,7 @@ from aiogram import F
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.geosuggest.place import Place
-from tg_bot.routers.user_fsm import UserFSM
+from tg_bot.routers.user_ui.user_fsm import UserFSM
 from tg_bot.keyboards import (
     get_user_keyboard,
     insert_place_tags_kb,

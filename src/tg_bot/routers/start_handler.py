@@ -5,10 +5,11 @@ from aiogram.types import Message
 from aiogram import Router, Bot
 
 from database.db_exceptions import UniqueConstraintError, ConstraintError
-from tg_bot.routers.user_fsm import UserFSM
+import database.db_functions as db
+
+from tg_bot.routers.user_ui.user_fsm import UserFSM
 from tg_bot.tg_exceptions import UserNotFound
 from tg_bot.keyboards import get_user_keyboard
-import database.db_functions as db
 
 
 router = Router()

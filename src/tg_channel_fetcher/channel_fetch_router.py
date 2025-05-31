@@ -5,7 +5,7 @@ from api.gpt.GptTgReview import GptTgReview
 from api.geosuggest.geosuggest import Geosuggest
 import database.db_functions as db
 from database.db_exceptions import UniqueConstraintError
-from tg_bot.routers.channel_fetch_functions import (
+from tg_channel_fetcher.channel_fetch_functions import (
     check_channel,
     parseAddress,
     parseName,
@@ -18,9 +18,6 @@ reviewer = GptTgReview()
 
 @router.channel_post()
 async def fetch_data(message: types.Message, session: AsyncSession) -> None:
-    """
-    currently in development, only prints to the console, I wait DB for tg posts
-    """
     if not await check_channel(message.chat.username, session):
         return
     out: dict = await reviewer.summarize_review_NAC(
@@ -49,3 +46,5 @@ async def fetch_data(message: types.Message, session: AsyncSession) -> None:
         await gather(*add_tasks)
     except UniqueConstraintError as e:
         print(e.message)
+
+
