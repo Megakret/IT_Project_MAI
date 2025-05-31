@@ -1,12 +1,13 @@
 import json
 from copy import deepcopy
 from httpx import AsyncClient
+from httpx_retries import RetryTransport
 
 from config import GPT_INDETIFICATION_KEY
-from api.gpt.GptRequest import GptRequest
+from api.gpt.GptRequest import GptRequestYandex
 
 
-class GptTgReview(GptRequest):
+class GptTgReview(GptRequestYandex):
     with open("src/api/gpt/json/tg_reviewer_prompt.json") as file:
         __default_prompt = json.load(file)
         __default_prompt["modelUri"] = (
@@ -27,5 +28,5 @@ class GptTgReview(GptRequest):
             return {"error": True}
 
     async def summarize_review_NAC(self, review: str) -> str:
-        async with AsyncClient() as client:
+        async with AsyncClient(transport=RetryTransport()) as client:
             return await self.summarize_review(client, review)

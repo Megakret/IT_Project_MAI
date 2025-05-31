@@ -1,5 +1,5 @@
 import pytest
-from api.gpt.GptRequest import GptRequest
+from api.gpt.GptRequest import GptRequestYandex
 from httpx import AsyncClient
 from config import GPT_INDETIFICATION_KEY
 import json
@@ -10,7 +10,7 @@ from copy import deepcopy
 # If this works, then all other work properly
 
 
-class GptTest(GptRequest):
+class GptTest(GptRequestYandex):
     with open("src/tests/json/test_prompt.json", encoding="UTF-8") as file:
         __default_prompt: dict = json.load(file)
         __default_prompt["modelUri"] = (

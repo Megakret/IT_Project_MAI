@@ -1,12 +1,13 @@
-from httpx import AsyncClient
 import json
+from httpx import AsyncClient
+from httpx_retries import RetryTransport
 from copy import deepcopy
 
 from config import GPT_INDETIFICATION_KEY
-from api.gpt.GptRequest import GptRequest
+from api.gpt.GptRequest import GptRequestYandex
 
 
-class GptSummarize(GptRequest):
+class GptSummarize(GptRequestYandex):
     with open("src/api/gpt/json/review_prompt.json", encoding="UTF-8") as file:
         __default_prompt: dict = json.load(file)
         __default_prompt["modelUri"] = (
@@ -32,5 +33,5 @@ class GptSummarize(GptRequest):
         return response.json()["result"]["alternatives"][0]["message"]["text"]
 
     async def summarize_NAC(self, reviews: list[str]) -> str:
-        async with AsyncClient() as client:
+        async with AsyncClient(transport=RetryTransport()) as client:
             return await self.summarize(client, reviews)
