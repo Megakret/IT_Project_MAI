@@ -16,7 +16,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from tg_bot.routers.admin_ui.user_manipulation.functions import validate_username
 import database.db_functions as db
+import logging
+from tg_bot.loggers.admin_logger import admin_log_handler
 
+logger = logging.getLogger(__name__)
+logger.addHandler(admin_log_handler)
 router = Router()
 PLACES_PER_PAGE_USERS = 5
 COMMENTS_PER_PAGE_FOR_DELETION = 4
@@ -112,7 +116,7 @@ async def not_banned(call: CallbackQuery, state: FSMContext):
 @router.callback_query(F.data == "yes", UserManipulationFSM.deletion_state)
 async def delete_data(call: CallbackQuery, state: FSMContext, session: AsyncSession):
     username: str = (await state.get_data())["username"]
-    print(username)
+    logger.debug(f"Deleted data of {username}")
     await db.delete_user_data_by_username(session, username[1:])
     await call.message.answer(
         "Данные пользователя удалены", reply_markup=user_manipulation_admin_kb

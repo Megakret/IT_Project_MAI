@@ -32,7 +32,7 @@ async def handle_cmd_start(
         except UniqueConstraintError as e:
             pass
         except ConstraintError as e:
-            logger.exception(e)
+            pass
         keyboard = await get_user_keyboard(session, message.from_user.id)
         await message.answer(
             (

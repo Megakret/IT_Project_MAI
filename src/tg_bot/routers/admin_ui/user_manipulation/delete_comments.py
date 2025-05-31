@@ -105,7 +105,6 @@ async def geosuggest_show(message: Message, state: FSMContext):
 async def choose_place_action(
     call: CallbackQuery, state: FSMContext, session: AsyncSession
 ):
-    print("Place selected")
     await geosuggest_for_place.selected_place(call, state)
     data = await state.get_data()
     place: db.Place = data.get(PLACE_KEY)
@@ -173,7 +172,6 @@ async def prev_comments_page(
 async def indicator_clicked_comments(
     callback: CallbackQuery, state: FSMContext, session: AsyncSession
 ):
-    print("indicator clicked")
     data = await state.get_data()
     await delete_comments_paginator_service.indicator_clicked(
         callback,
@@ -190,7 +188,6 @@ async def delete_comment(message: Message, state: FSMContext, session: AsyncSess
     id, username = message.text[len("/delete ") :].split()
     id = int(id)
     data = await state.get_data()
-    print(data["username"])
     await message.delete()
     try:
         await db.remove_review(session, username, id)

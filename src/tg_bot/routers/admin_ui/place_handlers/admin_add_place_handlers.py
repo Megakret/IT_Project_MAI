@@ -10,7 +10,11 @@ from tg_bot.ui_components.TagSelector import TagSelector
 from tg_bot.keyboards import INSERT_PLACE_TAGS_TAG, place_manager_kb
 from tg_bot.keyboards import place_manager_kb
 from tg_bot.tg_exceptions import MessageIsTooLarge
+import logging
+from tg_bot.loggers.admin_logger import admin_log_handler
 
+logger = logging.getLogger(__name__)
+logger.addHandler(admin_log_handler)
 router = Router()
 geosuggest_selector = GeosuggestSelector(AdminAddPlaceFSM.choose_place)
 tag_selector = TagSelector(
@@ -56,7 +60,7 @@ async def choose_suggested_place(
         )
         await state.set_state(AdminAddPlaceFSM.enter_description)
     except ValueError as e:
-        print(e)
+        logger.warning(e)
         await callback.message.answer(
             "Это место уже было добавлено.", reply_markup=place_manager_kb
         )

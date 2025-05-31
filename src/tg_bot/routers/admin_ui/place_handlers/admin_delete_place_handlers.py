@@ -11,6 +11,8 @@ from tg_bot.routers.role_model_fsm.admin_fsm import AdminDeletePlaceFSM
 from tg_bot.tg_exceptions import PlaceNotFound
 from tg_bot.ui_components.GeosuggestSelector import GeosuggestSelector, KEYBOARD_PREFIX
 from tg_bot.keyboards import place_manager_kb
+import logging
+from tg_bot.loggers.admin_logger import admin_log_handler
 
 router = Router()
 
