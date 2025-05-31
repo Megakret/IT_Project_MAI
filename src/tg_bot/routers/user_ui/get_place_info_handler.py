@@ -33,6 +33,7 @@ from tg_bot.keyboards import (
     get_user_keyboard,
 )
 from tg_bot.utils_and_validators import MessageIsTooLarge, validate_message_size
+from tg_bot.ui_components.RetryPolicyChecker import RetryPolicyRequest
 from config import MAX_COMMENT_SIZE
 
 
@@ -210,9 +211,12 @@ async def summarize_comments(
         comments = await db.get_place_comments_all(session, place.get_info())
         if len(comments) == 0:
             raise NoComments
-        summarization: str = await summarizer.summarize_NAC(comments)
+        summarization: str | None = await RetryPolicyRequest(
+            summarizer.summarize_NAC(comments), state
+        ).request(callback.message)
+        if summarization is None:
+            return
         await callback.message.answer(summarization)
-        await callback.answer()
     except NoPlaceException:
         await callback.answer("Попробуйте ввести место еще раз")
     except NoComments:
@@ -287,7 +291,11 @@ async def summarize_description(callback: CallbackQuery, state: FSMContext):
         description: str = data["description"]
         reteller = GptRetellingDescription()
         await callback.answer("Ожидайте...")
-        summarization: str = await reteller.retell_nac(description)
+        summarization: str | None = await RetryPolicyRequest(
+            reteller.retell_nac(description), state
+        ).request(callback.message)
+        if summarization is None:
+            return
         await callback.message.answer(summarization)
     except KeyError:
         await callback.answer("Что-то пошло не так. Напишите команду заново.")
