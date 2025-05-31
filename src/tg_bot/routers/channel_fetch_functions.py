@@ -1,5 +1,5 @@
 from api.gpt.GptTgReview import GptTgReview
-from api.geosuggest.geosuggest import Geosuggest, GeosuggestResult
+from api.geosuggest.geosuggest_yandex import GeosuggestYandex, GeosuggestResult
 from aiogram import Router, types
 import database.db_functions as db
 from database.db_exceptions import UniqueConstraintError
@@ -83,7 +83,7 @@ async def fetch_data(message: types.Message, session: AsyncSession) -> None:
         print("Message from " + message.chat.full_name + " is not about place")
         return
     print("passed if")
-    geosuggest = Geosuggest()
+    geosuggest = GeosuggestYandex()
     tasks = [geosuggest.request(place) for place in out["place"]]
     print("passed corutine creation")
     places = await gather(*tasks)

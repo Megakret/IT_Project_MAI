@@ -1,6 +1,6 @@
 import json
 import os
-from api.geosuggest.geosuggest import Geosuggest, GeosuggestResult
+from api.geosuggest.geosuggest_yandex import GeosuggestYandex, GeosuggestResult
 from api.geosuggest.place import Place
 
 PLACES_PER_PAGE: int = 3
@@ -20,7 +20,7 @@ class PlaceSchema:
 def create_placeholder() -> None:
     with open(os.path.dirname(__file__) + "/place_list.json", "w") as file:
         responces: list[GeosuggestResult] = [
-            Geosuggest.request(place)
+            GeosuggestYandex.request(place)
             for place in (
                 "Кремль",
                 "ВДНХ",

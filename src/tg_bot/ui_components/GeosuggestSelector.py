@@ -3,7 +3,7 @@ from aiogram.types import Message, CallbackQuery
 from aiogram.methods.send_message import SendMessage
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from api.geosuggest.geosuggest import GeosuggestResult, Geosuggest
+from api.geosuggest.geosuggest_yandex import GeosuggestResult, GeosuggestYandex
 from api.geosuggest.place import Place
 from tg_bot.utils_and_validators import message_sender_wrap
 from tg_bot.keyboards import suggest_place_kbs
@@ -40,7 +40,7 @@ class GeosuggestSelector:
             place_name: str = message.text
             if len(place_name) == 0:
                 raise NoTextMessageException()
-            responce: GeosuggestResult = await Geosuggest.request(message.text)
+            responce: GeosuggestResult = await GeosuggestYandex.request(message.text)
             if len(responce.get_places()) == 0:
                 raise NoPlacesFoundException()
             senders: list[asyncio.Task] = []

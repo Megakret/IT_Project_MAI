@@ -1,12 +1,13 @@
 import json
 from copy import deepcopy
 from httpx import AsyncClient
+from httpx_retries import RetryTransport
 
 from config import GPT_KEY, GPT_INDETIFICATION_KEY
-from api.gpt.GptRequest import GptRequest
+from api.gpt.GptRequest import GptRequestYandex
 
 
-class GptRetellingDescription(GptRequest):
+class GptRetellingDescription(GptRequestYandex):
     with open(
         "src/api/gpt/json/retelling_description_prompt.json", encoding="utf-8"
     ) as file:
@@ -36,5 +37,5 @@ class GptRetellingDescription(GptRequest):
         return response.json()["result"]["alternatives"][0]["message"]["text"]
 
     async def retell_nac(self, description: str):
-        async with AsyncClient() as client:
+        async with AsyncClient(transport=RetryTransport()) as client:
             return await self.retell(client, description)
