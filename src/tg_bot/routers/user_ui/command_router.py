@@ -3,12 +3,12 @@ from aiogram import Router
 from aiogram.types import Message
 from aiogram.fsm.context import FSMContext
 
-from tg_bot.routers.user_fsm import UserFSM
-from tg_bot.routers.add_place_handler import geosuggest_test
-from tg_bot.routers.place_list_handlers import show_place_list
-from tg_bot.routers.user_place_list_handler import show_user_place_list
-from tg_bot.routers.get_place_info_handler import get_place_handler
-from tg_bot.routers.get_places_by_tag_handler import show_tag_menu_handler
+from tg_bot.routers.user_ui.user_fsm import UserFSM
+from tg_bot.routers.user_ui.add_place_handler import geosuggest_test
+from tg_bot.routers.user_ui.place_list_handlers import show_place_list
+from tg_bot.routers.user_ui.user_place_list_handler import show_user_place_list
+from tg_bot.routers.user_ui.get_place_info_handler import get_place_handler
+from tg_bot.routers.user_ui.get_places_by_tag_handler import show_tag_menu_handler
 from sqlalchemy.ext.asyncio import AsyncSession
 
 router = Router()

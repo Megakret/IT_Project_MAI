@@ -15,16 +15,13 @@ from database.db_channels_functions import *
 
 def init_database() -> async_sessionmaker:
     global engine
-    engine = create_async_engine(
-        "sqlite+aiosqlite:///src/database/database.db", echo=True
-    )
+    engine = create_async_engine("sqlite+aiosqlite:///src/database/database.db")
     async_session_maker = async_sessionmaker(engine, expire_on_commit=False)
     return async_session_maker
 
 
 async def async_main() -> None:
     init_database()
-    print(engine.url)
     async with engine.begin() as connection:
         await connection.run_sync(Base.metadata.create_all)
 

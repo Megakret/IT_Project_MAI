@@ -21,7 +21,6 @@ class UserExistenceCheckMiddleware(BaseMiddleware):
             user_exists: bool = await is_existing_user(session, event.from_user.id)
         if user_exists:
             return await handler(event, data)
-        print("USER DOESNT EXIST")
         if isinstance(event, Message):
             await event.answer(ERROR_MESSAGE)
         elif isinstance(event, CallbackQuery):

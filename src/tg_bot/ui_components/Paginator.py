@@ -1,11 +1,9 @@
-from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery
-from tg_bot.keyboards import generate_page_kb
 from typing import Callable, Awaitable
 from aiogram.fsm.context import FSMContext
-from aiogram.filters import Command
 from aiogram.types import InlineKeyboardMarkup
 from aiogram.exceptions import TelegramBadRequest
+from tg_bot.keyboards import generate_page_kb
 
 
 class NoMorePages(Exception):
@@ -64,7 +62,7 @@ class Paginator:
                 text, reply_markup=self._paginator_service.update_kb(page), **kwargs
             )
         except TelegramBadRequest as e:
-            print(f"Paginator received same message")
+            pass
 
     async def update(self, *args, **kwargs):
         try:

@@ -264,7 +264,6 @@ async def remove_review(session: AsyncSession, username: str, place_id: int) -> 
         .returning(UserPlace.fk_user_id)
     )
     result = (await session.execute(statement)).scalar_one_or_none()
-    print(result)
     if not result:
         raise ValueError("User comment not found")
     await session.commit()

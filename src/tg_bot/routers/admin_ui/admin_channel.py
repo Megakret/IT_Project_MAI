@@ -1,9 +1,9 @@
 from aiogram import Router, F
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
-from aiogram.types import Message
+from aiogram.types import Message, CallbackQuery
 from tg_bot.routers.role_model_fsm.admin_fsm import AdminFSM, AdminChannelFSM
-from tg_bot.routers.manager_ui.manager_functions import *
+from tg_bot.routers.manager_ui.manager_channel_functions import *
 from tg_bot.keyboards import NEXT_PAGE, PREV_PAGE, INDICATOR_CLICKED
 
 router = Router()
@@ -22,7 +22,6 @@ async def display_help_manager(message: Message):
 @router.message(Command("exit"), AdminChannelFSM.add_channel_state)
 @router.message(Command("exit"), AdminChannelFSM.remove_channel_state)
 async def exit_channel_action_manager(message: Message, state: FSMContext):
-    print("Hello")
     await exit_channel_action(message, state, AdminFSM.channel_state)
 
 
@@ -35,7 +34,6 @@ async def add_channel_button_manager(message: Message, state: FSMContext):
 async def add_channel_action_manager(
     message: Message, state: FSMContext, session: AsyncSession
 ):
-    print("dasfasdfdasf")
     await add_channel_action(message, state, AdminFSM.channel_state, session)
 
 

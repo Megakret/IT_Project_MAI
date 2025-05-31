@@ -43,7 +43,6 @@ async def handle_yes_command(
     fail_state: State,
     fail_kb: ReplyKeyboardMarkup,
 ) -> None:
-    print("Yes command")
     try:
         result = await db.get_first_request(session)
     except:

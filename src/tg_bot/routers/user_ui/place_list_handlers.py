@@ -4,7 +4,7 @@ from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from tg_bot.routers.user_fsm import UserFSM
+from tg_bot.routers.user_ui.user_fsm import UserFSM
 from tg_bot.ui_components.Paginator import PaginatorService
 from database.db_functions import get_places, Place
 from tg_bot.keyboards import NEXT_PAGE, PREV_PAGE, INDICATOR_CLICKED

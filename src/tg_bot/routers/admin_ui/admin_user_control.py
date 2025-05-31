@@ -17,6 +17,12 @@ from tg_bot.routers.admin_ui.user_manipulation.delete_comments import (
 router = Router()
 
 
+def init_user_control_routers():
+    router.include_routers(
+        ban_router, list_router, unban_router, comments_router, role_router
+    )
+
+
 @router.message(F.text == "Управление пользователями", AdminFSM.start_state)
 async def open_menu(message: Message, state: FSMContext):
     await state.set_state(AdminFSM.user_manipulation_state)
@@ -35,8 +41,3 @@ async def exit_to_first_menu(message: Message, state: FSMContext):
     )
     await state.clear()
     await state.set_state(AdminFSM.user_manipulation_state)
-
-
-router.include_routers(
-    ban_router, list_router, unban_router, comments_router, role_router
-)

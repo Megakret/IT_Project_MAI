@@ -2,7 +2,7 @@ import asyncio
 from aiogram.types import Message, CallbackQuery
 from aiogram.methods.send_message import SendMessage
 from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import State, StatesGroup
+from aiogram.fsm.state import State
 from api.geosuggest.geosuggest_yandex import GeosuggestResult, GeosuggestYandex
 from api.geosuggest.place import Place
 from tg_bot.utils_and_validators import message_sender_wrap
