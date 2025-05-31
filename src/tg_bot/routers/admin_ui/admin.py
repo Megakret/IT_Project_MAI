@@ -7,8 +7,22 @@ from tg_bot.routers.role_model_fsm.admin_fsm import *
 from sqlalchemy.ext.asyncio import AsyncSession
 from database.db_functions import is_admin
 from tg_bot.routers.start_handler import handle_cmd_start
+from tg_bot.routers.admin_ui.admin_place import router as place_router
+from tg_bot.routers.admin_ui.admin_place import init_admin_place_panel
+from tg_bot.routers.admin_ui.admin_request import router as request_router
+from tg_bot.routers.admin_ui.admin_user_control import router as user_control_router
+from tg_bot.routers.admin_ui.admin_user_control import init_user_control_routers
+from tg_bot.routers.admin_ui.admin_channel import router as channel_router
 
 router = Router()
+
+
+def init_admin_routers():
+    router.include_routers(
+        place_router, request_router, user_control_router, channel_router
+    )
+    init_user_control_routers()
+    init_admin_place_panel()
 
 
 @router.message(F.text == "Админ панель")

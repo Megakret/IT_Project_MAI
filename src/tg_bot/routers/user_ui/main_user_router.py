@@ -13,6 +13,7 @@ from tg_bot.routers.user_ui.user_place_list_handler import router as user_place_
 from tg_bot.routers.user_ui.get_place_info_handler import router as get_place_info_router
 from tg_bot.routers.user_ui.gpt_talk_handlers import router as gpt_router
 from tg_bot.routers.user_ui.get_user_comments_handler import router as get_user_comments_router
+from tg_bot.routers.user_ui.command_router import router as command_router
 from tg_bot.routers.user_ui.user_fsm import UserFSM
 from tg_bot.middlewares.UserExistenceCheckMiddleware import UserExistenceCheckMiddleware
 
@@ -27,6 +28,7 @@ def initialize_user_routers(session_maker: async_sessionmaker):
     router.include_router(gpt_router)
     router.include_router(get_places_by_tag_router)
     router.include_router(get_user_comments_router)
+    router.include_router(command_router)
     router.message.middleware(UserExistenceCheckMiddleware(session_maker))
     router.callback_query.middleware(UserExistenceCheckMiddleware(session_maker))
 
