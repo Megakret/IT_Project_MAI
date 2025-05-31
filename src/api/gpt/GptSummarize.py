@@ -3,7 +3,7 @@ from httpx import AsyncClient
 from httpx_retries import RetryTransport
 from copy import deepcopy
 
-from config import GPT_INDETIFICATION_KEY
+from config import GPT_INDETIFICATION_KEY, RETRY_POLICY_TRANSPORT
 from api.gpt.GptRequest import GptRequestYandex
 
 
@@ -33,5 +33,5 @@ class GptSummarize(GptRequestYandex):
         return response.json()["result"]["alternatives"][0]["message"]["text"]
 
     async def summarize_NAC(self, reviews: list[str]) -> str:
-        async with AsyncClient(transport=RetryTransport()) as client:
+        async with AsyncClient(transport=RetryTransport(RETRY_POLICY_TRANSPORT)) as client:
             return await self.summarize(client, reviews)

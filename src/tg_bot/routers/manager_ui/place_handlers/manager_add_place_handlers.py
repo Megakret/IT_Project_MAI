@@ -10,6 +10,7 @@ from tg_bot.ui_components.TagSelector import TagSelector
 from tg_bot.keyboards import INSERT_PLACE_TAGS_TAG, place_manager_kb
 from tg_bot.keyboards import place_manager_kb
 from tg_bot.tg_exceptions import MessageIsTooLarge
+from tg_bot.utils_and_validators import drop_request
 
 router = Router()
 geosuggest_selector = GeosuggestSelector(ManagerAddPlaceFSM.choose_place)
@@ -28,6 +29,7 @@ tag_selector = TagSelector(
     ),
 )
 async def exit_handler(message: Message, state: FSMContext):
+    await drop_request(state)
     await message.answer(
         "Вы вышли из команды удаления места", reply_markup=place_manager_kb
     )

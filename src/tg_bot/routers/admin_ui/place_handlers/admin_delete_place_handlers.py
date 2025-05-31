@@ -13,6 +13,7 @@ from tg_bot.ui_components.GeosuggestSelector import GeosuggestSelector, KEYBOARD
 from tg_bot.keyboards import place_manager_kb
 import logging
 from tg_bot.loggers.admin_logger import admin_log_handler
+from tg_bot.utils_and_validators import drop_request
 
 router = Router()
 
@@ -24,6 +25,7 @@ geosuggest_selector = GeosuggestSelector(AdminDeletePlaceFSM.select_place)
     or_f(AdminDeletePlaceFSM.enter_place_name, AdminDeletePlaceFSM.select_place),
 )
 async def exit_handler(message: Message, state: FSMContext):
+    await drop_request(state)
     await message.answer(
         "Вы вышли из команды удаления места", reply_markup=place_manager_kb
     )

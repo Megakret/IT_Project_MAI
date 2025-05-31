@@ -18,6 +18,7 @@ from tg_bot.routers.manager_ui.place_handlers.manager_delete_place_handlers impo
 from tg_bot.routers.manager_ui.place_handlers.manager_update_place_handlers import (
     router as update_place_router,
 )
+from tg_bot.utils_and_validators import drop_request
 
 router = Router()
 
@@ -41,4 +42,5 @@ async def manage_places(message: Message, state: FSMContext):
 @router.message(F.text == "Назад", ManagerFSM.place_state)
 async def exit_handler(message: Message, state: FSMContext):
     await message.answer("Вы вышли из меню управления местами", reply_markup=manager_kb)
+    await drop_request(state)
     await state.set_state(ManagerFSM.start_state)

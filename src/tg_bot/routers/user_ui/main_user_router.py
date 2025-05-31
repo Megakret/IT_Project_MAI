@@ -23,6 +23,7 @@ from tg_bot.routers.user_ui.get_user_comments_handler import (
 from tg_bot.routers.user_ui.command_router import router as command_router
 from tg_bot.routers.user_ui.user_fsm import UserFSM
 from tg_bot.middlewares.UserExistenceCheckMiddleware import UserExistenceCheckMiddleware
+from tg_bot.utils_and_validators import drop_request
 
 import logging
 from tg_bot.loggers.user_logger import user_log_handler
@@ -48,6 +49,7 @@ def initialize_user_routers(session_maker: async_sessionmaker):
 @router.message(F.text == "Назад")
 async def exit_command(message: Message, state: FSMContext, session: AsyncSession):
     current_state: State = await state.get_state()
+    await drop_request(state)
     if current_state is UserFSM.start_state:
         await message.answer("Вы итак в главном меню")
     else:

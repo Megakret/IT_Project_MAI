@@ -10,6 +10,7 @@ from tg_bot.ui_components.GeosuggestSelector import (
 import tg_bot.routers.manager_ui.place_handlers.get_place_functions as get_place_funcs
 from tg_bot.routers.role_model_fsm.manager_fsm import ManagerGetPlaceFSM
 from tg_bot.keyboards import place_manager_kb
+from tg_bot.utils_and_validators import drop_request
 
 router = Router()
 geosuggest_selector = GeosuggestSelector(ManagerGetPlaceFSM.choose_place)
@@ -20,6 +21,7 @@ geosuggest_selector = GeosuggestSelector(ManagerGetPlaceFSM.choose_place)
     or_f(ManagerGetPlaceFSM.enter_place, ManagerGetPlaceFSM.choose_place),
 )
 async def exit_handler(message: Message, state: FSMContext):
+    await drop_request(state)
     await message.answer(
         "Вы вышли из команды поиска места", reply_markup=place_manager_kb
     )

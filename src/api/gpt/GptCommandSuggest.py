@@ -5,6 +5,7 @@ from httpx_retries import RetryTransport
 
 from config import GPT_INDETIFICATION_KEY
 from api.gpt.GptRequest import GptRequestYandex
+from config import RETRY_POLICY_TRANSPORT
 
 
 class GptCommand(GptRequestYandex):
@@ -29,7 +30,7 @@ class GptCommand(GptRequestYandex):
         return response["result"]["alternatives"][0]["message"]["text"]
 
     async def command_NAC(self, user_message: str) -> str:
-        async with AsyncClient(transport=RetryTransport()) as client:
+        async with AsyncClient(transport=RetryTransport(transport=RETRY_POLICY_TRANSPORT)) as client:
             return await self.command(client, user_message)
 
 
@@ -42,7 +43,7 @@ if __name__ == "__main__":
         load_dotenv()
 
         gpt: GptCommand = GptCommand()
-        async with AsyncClient() as client:
+        async with AsyncClient(transport=RETRY_POLICY_TRANSPORT) as client:
             while s := input():
                 print(await gpt.command(client, s))
 

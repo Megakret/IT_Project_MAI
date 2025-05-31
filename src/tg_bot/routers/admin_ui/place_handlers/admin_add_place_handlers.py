@@ -12,6 +12,7 @@ from tg_bot.keyboards import place_manager_kb
 from tg_bot.tg_exceptions import MessageIsTooLarge
 import logging
 from tg_bot.loggers.admin_logger import admin_log_handler
+from tg_bot.utils_and_validators import drop_request
 
 logger = logging.getLogger(__name__)
 logger.addHandler(admin_log_handler)
@@ -32,6 +33,7 @@ tag_selector = TagSelector(
     ),
 )
 async def exit_handler(message: Message, state: FSMContext):
+    await drop_request(state)
     await message.answer(
         "Вы вышли из команды удаления места", reply_markup=place_manager_kb
     )

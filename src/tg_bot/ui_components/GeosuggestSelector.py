@@ -8,6 +8,7 @@ from api.geosuggest.place import Place
 from tg_bot.utils_and_validators import message_sender_wrap
 from tg_bot.keyboards import suggest_place_kbs
 from tg_bot.tg_exceptions import NoTextMessageException
+from tg_bot.ui_components.RetryPolicyChecker import RetryPolicyRequest, REQUEST_TAG
 
 
 PLACE_KEY = "place"
@@ -40,7 +41,10 @@ class GeosuggestSelector:
             place_name: str = message.text
             if len(place_name) == 0:
                 raise NoTextMessageException()
-            responce: GeosuggestResult = await GeosuggestYandex.request(message.text)
+            request = RetryPolicyRequest(GeosuggestYandex.request(message.text), state)
+            responce: GeosuggestResult = await request.request(message)
+            if responce is None:  # failed to get places
+                return
             if len(responce.get_places()) == 0:
                 raise NoPlacesFoundException()
             senders: list[asyncio.Task] = []
