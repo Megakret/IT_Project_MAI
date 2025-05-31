@@ -17,6 +17,7 @@ from tg_bot.keyboards import (
 )
 from tg_bot.ui_components.GeosuggestSelector import GeosuggestSelector, KEYBOARD_PREFIX
 from tg_bot.ui_components.TagSelector import TagSelector
+from tg_bot.utils_and_validators import drop_request
 
 router = Router()
 geosuggest_selector = GeosuggestSelector(AdminUpdatePlaceFSM.select_place)
@@ -34,6 +35,7 @@ tag_selector = TagSelector(AdminUpdatePlaceFSM.enter_new_tags, router)
     ),
 )
 async def exit_handler(message: Message, state: FSMContext):
+    await drop_request(state)
     await message.answer(
         "Вы вышли из команды редактирования места", reply_markup=place_manager_kb
     )
