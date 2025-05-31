@@ -55,8 +55,7 @@ if __name__ == "__main__":
     init_start_shutdown_logger()
     start_logger = logging.getLogger(__name__)
     start_logger.addHandler(start_shutdown_log_handler)
-    try:
-        start_logger.critical("Bot started")
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        start_logger.critical("Bot has been turned off")
+    start_logger.critical("Bot started")
+    asyncio.run(main())
+    start_logger.critical("Bot has been turned off")
+        
