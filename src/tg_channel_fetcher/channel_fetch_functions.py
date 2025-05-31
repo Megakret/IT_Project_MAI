@@ -1,10 +1,9 @@
-from api.geosuggest.geosuggest import GeosuggestResult
+from api.geosuggest.geosuggest_yandex import GeosuggestResult
 import database.db_functions as db
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
 async def add_channel(tag: str, manager_id: int, session: AsyncSession) -> bool:
-    print(tag)
     if await check_channel(tag, session):
         return False
     await db.add_channel(session, tag, manager_id)
@@ -20,7 +19,6 @@ async def remove_channel(tag: str, session: AsyncSession) -> bool:
     try:
         await db.delete_channel(session, tag)
     except ValueError as e:
-        print(e)
         return False
     return True
 

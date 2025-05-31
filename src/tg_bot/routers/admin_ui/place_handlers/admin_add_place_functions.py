@@ -16,6 +16,11 @@ from tg_bot.ui_components.TagSelector import (
 import database.db_functions as db
 from database.db_exceptions import UniqueConstraintError
 
+import logging
+from tg_bot.loggers.admin_logger import admin_log_handler
+
+logger = logging.getLogger(__name__)
+logger.addHandler(admin_log_handler)
 
 # @router.message(F.text == "Добавить место")
 # @router.message(Command("add_place"))
@@ -81,8 +86,8 @@ async def answer_form_result(
         if tags is not None:
             await db.add_place_tags(session, address, tuple(tags))
     except UniqueConstraintError as e:
-        print("Already existing place has been tried to add to global list")
-        print(e.message)
+        logger.warning("Already existing place has been tried to add to global list")
+        logger.warning(e.message)
     try:
         database_place, rating = await db.get_place_with_score(session, address)
         await message.answer(
@@ -90,7 +95,7 @@ async def answer_form_result(
             reply_markup=keyboard,
         )
     except UniqueConstraintError as e:
-        print(e.message)
+        logger.warning(e.message)
         await message.answer(
             "Вы уже добавляли это место",
             reply_markup=keyboard,
